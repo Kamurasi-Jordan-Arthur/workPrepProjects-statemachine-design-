@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="7.0.1" links="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.state-machine.com/qm/qm7.xsd">
+ <documentation>About this example:
+-------------------
+Simple &quot;Blinky&quot; console application for workstations (Windows, Linux, MacOS)
+(see &quot;QM Tutorial&quot; at: https://www.state-machine.com/qm/gs_tut.html)
+
+This example demonstrates:
+- Active object (Blinky) with state machine
+- Board Support Package abstraction for portability
+- BSP implementation for desktop OS (Windows, Linux, MacOS)
+- Platform-independent main() function
+- Makefile to build the generated code on desktop OS (Windows, Linux, MacOS)
+- Customized tools for building the generated code directly from QM
+
+Building the example:
+---------------------
+To build this example, you will need the QP/C framework installed on your
+computer and the GNU-GCC compiler. Both of them will be available if you
+install the QP-bundle from:
+
+https://www.state-machine.com/#Downloads
+
+Running the example:
+--------------------
+This example is a simple console application, which you can run from a terminal.
+
+For more QM examples for QP/C see:
+https://www.state-machine.com/qpc/exa.html</documentation>
+ <!--${qpc}-->
+ <framework name="qpc"/>
+ <!--${Shared}-->
+ <package name="Shared" stereotype="0x00">
+  <!--${Shared::AudioPlayerSignals}-->
+  <attribute name="AudioPlayerSignals" type="enum" visibility="0x04" properties="0x00">
+   <code>{
+    TIMEOUT_SIG = Q_USER_SIG,
+    PLUS_SIG,
+    MINUS_SIG,
+    NEXT_SIG,
+    PREV_SIG,
+    DONE_SIG,
+    MODE_SIG,
+    PLAYPAUSE_SIG,
+    RELEASE_SIG,
+    TERMINATE_SIG,
+    MAX_SIG,
+
+};</code>
+  </attribute>
+  <!--${Shared::AO_AudioPlayer}-->
+  <attribute name="AO_AudioPlayer" type="QActive * const" visibility="0x00" properties="0x00">
+   <code>= &amp;AudioPlayer_inst.super;</code>
+  </attribute>
+  <!--${Shared::AudioPlayer_ctor}-->
+  <operation name="AudioPlayer_ctor" type="void" visibility="0x00" properties="0x01">
+   <documentation>The Blinky &quot;constructor&quot; is provided outside of the Blinky class, so that it can be used independently from the class. This is part of the &quot;opaque pointer&quot; design idiom.</documentation>
+   <code>AudioPlayer * const me = &amp;AudioPlayer_inst;
+
+me-&gt;vol = (uint8_t)3U;
+
+QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;AudioPlayer_initial));
+
+QTimeEvt_ctorX(&amp;me-&gt;volTimerEvt, &amp;me-&gt;super, TIMEOUT_SIG, 0U);
+
+QTimeEvt_ctorX(&amp;me-&gt;volTimerEvt, &amp;me-&gt;super, TIMEOUT_SIG, 0U);</code>
+  </operation>
+  <!--${Shared::PLAYER_QUEUE}-->
+  <attribute name="PLAYER_QUEUE" type="" visibility="0x03" properties="0x00">
+   <code>10U</code>
+  </attribute>
+  <!--${Shared::appConstants}-->
+  <attribute name="appConstants" type="enum" visibility="0x04" properties="0x00">
+   <code> {
+    PLUS,
+    MINUS,
+    VOL_INTERVAL = BSP_TICKS_PER_SEC,
+};</code>
+  </attribute>
+ </package>
+ <!--${AOs}-->
+ <package name="AOs" stereotype="0x02">
+  <!--${AOs::AudioPlayer}-->
+  <class name="AudioPlayer" superclass="qpc::QActive">
+   <!--${AOs::AudioPlayer::volTimerEvt}-->
+   <attribute name="volTimerEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <!--${AOs::AudioPlayer::vol}-->
+   <attribute name="vol" type="uint8_t" visibility="0x02" properties="0x00"/>
+   <!--${AOs::AudioPlayer::volChanged}-->
+   <attribute name="volChanged" type="uint8_t" visibility="0x02" properties="0x00">
+    <code>0U;</code>
+   </attribute>
+   <!--${AOs::AudioPlayer::sign}-->
+   <attribute name="sign" type="uint8_t" visibility="0x02" properties="0x00"/>
+   <!--${AOs::AudioPlayer::SM}-->
+   <statechart properties="0x03">
+    <documentation>Audio Player state machine</documentation>
+    <!--${AOs::AudioPlayer::SM::initial}-->
+    <initial target="../1">
+     <action>me-&gt;vol = 3U;
+me-&gt;volChanged = 0U;</action>
+     <initial_glyph conn="29,21,5,0,15,6">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <!--${AOs::AudioPlayer::SM::MODE}-->
+    <state name="MODE">
+     <!--${AOs::AudioPlayer::SM::MODE::initial}-->
+     <initial target="../6">
+      <initial_glyph conn="31,33,5,0,4,5">
+       <action box="0,-2,10,2"/>
+      </initial_glyph>
+     </initial>
+     <!--${AOs::AudioPlayer::SM::MODE::PLUS}-->
+     <tran trig="PLUS">
+      <action>QTimeEvt_armX(&amp;me-&gt;volTimerEvt, VOL_INTERVAL, VOL_INTERVAL);
+me-&gt;sign = (uint8_t)PLUS;
+</action>
+      <tran_glyph conn="107,36,1,-1,-19,3">
+       <action box="-14,-3,10,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::AudioPlayer::SM::MODE::TIMEOUT}-->
+     <tran trig="TIMEOUT">
+      <action>me-&gt;volChanged = 1U;</action>
+      <!--${AOs::AudioPlayer::SM::MODE::TIMEOUT::[me->sign==(uint8_t)PLUS]}-->
+      <choice>
+       <guard>me-&gt;sign == (uint8_t)PLUS</guard>
+       <action>me-&gt;vol++;
+</action>
+       <choice_glyph conn="99,49,5,-1,-11,-5">
+        <action box="-16,-3,22,2"/>
+       </choice_glyph>
+      </choice>
+      <!--${AOs::AudioPlayer::SM::MODE::TIMEOUT::[else]}-->
+      <choice>
+       <guard>else</guard>
+       <action>me-&gt;vol--;</action>
+       <choice_glyph conn="99,49,5,-1,-8,5">
+        <action box="-7,1,10,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="107,49,1,-1,-8">
+       <action box="-7,1,15,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::AudioPlayer::SM::MODE::MINUS}-->
+     <tran trig="MINUS">
+      <action>QTimeEvt_armX(&amp;me-&gt;volTimerEvt, VOL_INTERVAL, VOL_INTERVAL);
+me-&gt;sign = (uint8_t)MINUS;
+</action>
+      <tran_glyph conn="107,63,1,-1,-19,-2">
+       <action box="-15,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::AudioPlayer::SM::MODE::RELEASE}-->
+     <tran trig="RELEASE">
+      <action>QTimeEvt_disarm(&amp;me-&gt;volTimerEvt);</action>
+      <!--${AOs::AudioPlayer::SM::MODE::RELEASE::[!me->volChanged]}-->
+      <choice>
+       <guard>!me-&gt;volChanged</guard>
+       <!--${AOs::AudioPlayer::SM::MODE::RELEASE::[!me->volChanged~::[me->sign==(uint8_t)PLUS]}-->
+       <choice>
+        <guard>me-&gt;sign == (uint8_t)PLUS</guard>
+        <action brief="NEXT">static const QEvt nextEvt = QEVT_INITIALIZER(NEXT_SIG);
+QACTIVE_POST(AO_AudioPlayer, &amp;nextEvt, (void)0U);</action>
+        <choice_glyph conn="94,86,5,-1,6,6">
+         <action box="0,8,23,5"/>
+        </choice_glyph>
+       </choice>
+       <!--${AOs::AudioPlayer::SM::MODE::RELEASE::[!me->volChanged~::[else]}-->
+       <choice>
+        <guard>else</guard>
+        <action brief="PREVIOUS">static const QEvt prevEvt = QEVT_INITIALIZER(PREV_SIG);
+QACTIVE_POST(AO_AudioPlayer, &amp;prevEvt, (void)0U);</action>
+        <choice_glyph conn="94,86,5,-1,-6,6">
+         <action box="-15,0,11,7"/>
+        </choice_glyph>
+       </choice>
+       <choice_glyph conn="94,79,4,-1,7">
+        <action box="1,3,17,2"/>
+       </choice_glyph>
+      </choice>
+      <!--${AOs::AudioPlayer::SM::MODE::RELEASE::[else]}-->
+      <choice>
+       <guard>else</guard>
+       <action>me-&gt;volChanged = 0U;</action>
+       <choice_glyph conn="94,79,5,-1,-7">
+        <action box="1,0,10,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="107,73,1,-1,-13,6">
+       <action box="-25,-2,33,4"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::AudioPlayer::SM::MODE::TERMINATE}-->
+     <tran trig="TERMINATE" target="../../2">
+      <tran_glyph color="2" conn="107,101,1,0,9,5">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::AudioPlayer::SM::MODE::Radio}-->
+     <state name="Radio">
+      <entry>//Power the anttena</entry>
+      <exit>//Disconnect the Antenna</exit>
+      <!--${AOs::AudioPlayer::SM::MODE::Radio::MODE}-->
+      <tran trig="MODE" target="../../7">
+       <tran_glyph conn="31,65,2,0,5">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Radio::PLAYPAUSE}-->
+      <tran trig="PLAYPAUSE">
+       <action>//Mute the speckers
+bspMute();</action>
+       <tran_glyph conn="50,45,1,-1,-11">
+        <action box="-14,-3,15,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Radio::NEXT}-->
+      <tran trig="NEXT">
+       <action>//Play next radio Satation
+BspSeekNext();</action>
+       <tran_glyph conn="20,47,3,-1,12">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Radio::PREV}-->
+      <tran trig="PREV">
+       <action>//play previous station
+BspSeekPrev();</action>
+       <tran_glyph conn="20,51,3,-1,10">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="20,38,30,27">
+       <entry box="0,3,6,2"/>
+       <exit box="0,5,6,2"/>
+      </state_glyph>
+     </state>
+     <!--${AOs::AudioPlayer::SM::MODE::Bluetooth}-->
+     <state name="Bluetooth">
+      <exit>//DIs able the BT Module and </exit>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::initial}-->
+      <initial target="../5">
+       <initial_glyph conn="43,75,5,0,4,3">
+        <action box="0,-2,10,2"/>
+       </initial_glyph>
+      </initial>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::MODE}-->
+      <tran trig="MODE" target="../../8">
+       <tran_glyph conn="74,70,0,2,-3">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::PLAYPAUSE}-->
+      <tran trig="PLAYPAUSE">
+       <action>//transmit the paly play sinal command to the Master
+BspTramitSignal();</action>
+       <tran_glyph conn="23,80,3,-1,12">
+        <action box="0,-2,15,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::NEXT}-->
+      <tran trig="NEXT">
+       <action>//transmit the next signal command to master
+bspTrasNext();</action>
+       <tran_glyph conn="23,84,3,-1,9">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::PREV}-->
+      <tran trig="PREV">
+       <action>//transmit the previous signal command to master
+bspTrasPrev();</action>
+       <tran_glyph conn="23,88,3,-1,11">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::BT_Init}-->
+      <state name="BT_Init">
+       <entry>//Power BT Module and set the device in slave mode</entry>
+       <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::BT_Init::DONE}-->
+       <tran trig="DONE" target="../../6">
+        <tran_glyph color="1" conn="55,83,1,3,6">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph color="3" node="40,78,15,10">
+        <entry box="0,3,6,2"/>
+       </state_glyph>
+      </state>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::Pairing}-->
+      <state name="Pairing">
+       <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::Pairing::DONE}-->
+       <tran trig="DONE" target="../../7">
+        <tran_glyph color="1" conn="66,87,2,1,7,-4">
+         <action box="0,4,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph color="3" node="61,79,12,8"/>
+      </state>
+      <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::Pair}-->
+      <state name="Pair">
+       <state_glyph color="3" node="52,90,10,7"/>
+      </state>
+      <state_glyph node="23,70,56,30">
+       <exit box="0,3,6,2"/>
+      </state_glyph>
+     </state>
+     <!--${AOs::AudioPlayer::SM::MODE::SD_card_Input}-->
+     <state name="SD_card_Input">
+      <entry>//mount card and resume play
+bspMountSDCard();
+bspResumeRead();</entry>
+      <exit>//save current play context and unmount card
+bspSaveReadState();
+bspUnmountSDCard();</exit>
+      <!--${AOs::AudioPlayer::SM::MODE::SD_card_Input::MODE}-->
+      <tran trig="MODE" target="../../6">
+       <tran_glyph conn="56,59,3,1,-6">
+        <action box="-8,-3,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::SD_card_Input::PLAYPAUSE}-->
+      <tran trig="PLAYPAUSE">
+       <action>//pause current read and play operation
+bspPauseRead();</action>
+       <tran_glyph conn="56,50,3,-1,13">
+        <action box="0,0,12,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::SD_card_Input::NEXT}-->
+      <tran trig="NEXT">
+       <action>//Read Next mp3file from card.
+bspReadNext();</action>
+       <tran_glyph conn="56,56,3,-1,12">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::AudioPlayer::SM::MODE::SD_card_Input::PREV}-->
+      <tran trig="PREV">
+       <action>//Read Previos mp3file from card.
+bspReadPrev();</action>
+       <tran_glyph conn="56,62,3,-1,9">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="56,42,27,25">
+       <entry box="0,3,6,2"/>
+       <exit box="0,5,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="14,27,93,82"/>
+    </state>
+    <!--${AOs::AudioPlayer::SM::OFF}-->
+    <state name="OFF">
+     <entry>BSP_terminate();</entry>
+     <state_glyph color="2" node="111,106,8,9">
+      <entry box="0,3,6,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="174,133"/>
+   </statechart>
+  </class>
+  <!--${AOs::AudioPlayer_inst}-->
+  <attribute name="AudioPlayer_inst" type="AudioPlayer" visibility="0x02" properties="0x00"/>
+ </package>
+ <!--${.}-->
+ <directory name=".">
+  <!--${.::audioPlayer.c}-->
+  <file name="audioPlayer.c">
+   <text>#include &quot;AudioPlayer.h&quot;
+
+$define${AOs}
+$define${Shared::AudioPlayer_ctor}
+$define${Shared::AO_AudioPlayer}
+</text>
+  </file>
+ </directory>
+ <!--${../../Inc}-->
+ <directory name="../../Inc">
+  <!--${../../Inc::bsp.h}-->
+  <file name="bsp.h">
+   <text>#ifndef BSP_H_
+#define BSP_H_
+
+#define BSP_TICKS_PER_SEC    100U
+
+void BSP_init(void);
+void BSP_start(void);
+
+void BSP_terminate(void);
+
+void BSP_randomSeed(uint32_t seed); // random seed
+uint32_t BSP_random(void);          // pseudo-random generator
+
+void BSP_ledOn(void);
+void BSP_ledOff(void);
+
+void bspMute(void);
+
+void BspSeekNext(void);
+void BspSeekPrev(void);
+
+void BspTramitSignal(void);
+void bspTrasNext(void);
+void bspTrasPrev(void);
+
+void bspResumeRead(void);
+void bspSaveReadState(void);
+
+void bspUnmountSDCard(void);
+void bspMountSDCard(void);
+
+void bspPauseRead(void);
+
+void bspReadNext(void);
+void bspReadPrev(void);
+
+#endif // BSP_H_
+</text>
+  </file>
+  <!--${../../Inc::AudioPlayer.h}-->
+  <file name="AudioPlayer.h">
+   <text>#ifndef audioPlayer_H_
+#define audioPlayer_H_
+#include &quot;shared.h&quot;
+#include &quot;qpc.h&quot;
+
+$declare${AOs::AudioPlayer}
+$declare${Shared::AudioPlayer_ctor}
+
+
+#endif </text>
+  </file>
+  <!--${../../Inc::shared.h}-->
+  <file name="shared.h">
+   <text>#ifndef Shared_H_
+#define Shared_H_
+
+#include &quot;qpc.h&quot;
+#include &quot;bsp.h&quot;
+
+$declare${Shared::AudioPlayerSignals}
+$declare${Shared::AO_AudioPlayer}
+$declare${Shared::PLAYER_QUEUE}
+$declare${Shared::appConstants}
+
+
+#endif </text>
+  </file>
+ </directory>
+</model>

@@ -1,0 +1,4 @@
+/home/jordan/qp/qp/qpc/include/qp_pkg.h:68:20:QEvt_refCtr_dec_	24	static
+../Src/qf/qf_defer.c:45:6:QActive_defer	40	static
+../Src/qf/qf_defer.c:67:6:QActive_recall	24	static
+../Src/qf/qf_defer.c:120:15:QActive_flushDeferred	32	static

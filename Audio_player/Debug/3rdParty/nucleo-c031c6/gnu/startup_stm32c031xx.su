@@ -1,0 +1,4 @@
+../3rdParty/nucleo-c031c6/gnu/startup_stm32c031xx.c:153:6:Reset_Handler	0	static,ignoring_inline_asm
+../3rdParty/nucleo-c031c6/gnu/startup_stm32c031xx.c:195:6:NMI_Handler	0	static,ignoring_inline_asm
+../3rdParty/nucleo-c031c6/gnu/startup_stm32c031xx.c:202:6:HardFault_Handler	0	static,ignoring_inline_asm
+../3rdParty/nucleo-c031c6/gnu/startup_stm32c031xx.c:209:6:Default_Handler	0	static,ignoring_inline_asm

@@ -1,0 +1,5 @@
+/home/jordan/qp/qp/qpc/include/qp_pkg.h:61:20:QEvt_refCtr_inc_	24	static
+../Src/qf/qf_qeq.c:45:6:QEQueue_init	24	static
+../Src/qf/qf_qeq.c:71:6:QEQueue_post	32	static
+../Src/qf/qf_qeq.c:153:6:QEQueue_postLIFO	32	static
+../Src/qf/qf_qeq.c:210:21:QEQueue_get	32	static

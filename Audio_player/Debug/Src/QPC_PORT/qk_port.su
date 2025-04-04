@@ -1,0 +1,9 @@
+../Src/QPC_PORT/qk_port.c:82:6:QF_int_disable_	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:113:6:QF_int_enable_	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:149:6:QF_crit_entry_	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:180:6:QF_crit_exit_	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:219:6:QK_init	8	static
+../Src/QPC_PORT/qk_port.c:280:6:PendSV_Handler	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:346:6:QK_thread_ret	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:448:6:NMI_Handler	0	static,ignoring_inline_asm
+../Src/QPC_PORT/qk_port.c:478:14:QF_qlog2	0	static,ignoring_inline_asm

@@ -1,0 +1,4 @@
+../Startup/startup_stm32c031xx.c:153:6:Reset_Handler	3
+../Startup/startup_stm32c031xx.c:195:6:NMI_Handler	0
+../Startup/startup_stm32c031xx.c:202:6:HardFault_Handler	0
+../Startup/startup_stm32c031xx.c:209:6:Default_Handler	0

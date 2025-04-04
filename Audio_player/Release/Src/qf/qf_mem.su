@@ -1,0 +1,3 @@
+../Src/qf/qf_mem.c:45:6:QMPool_init	24	static
+../Src/qf/qf_mem.c:101:8:QMPool_get	16	static
+../Src/qf/qf_mem.c:173:6:QMPool_put	16	static

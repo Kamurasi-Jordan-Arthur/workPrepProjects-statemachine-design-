@@ -1,0 +1,3 @@
+../Src/qf/qf_qact.c:45:6:QActive_ctor	1
+../Src/qf/qf_qact.c:74:6:QActive_register_	10
+../Src/qf/qf_qact.c:123:6:QActive_unregister_	2

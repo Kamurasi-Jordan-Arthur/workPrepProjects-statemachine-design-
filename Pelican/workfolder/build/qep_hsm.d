@@ -1,0 +1,6 @@
+build/qep_hsm.o: /home/jordan/qp/qpc/src/qf/qep_hsm.c \
+ /home/jordan/qp/qpc/ports/posix/qp_port.h qp_config.h \
+ /home/jordan/qp/qpc/include/qequeue.h \
+ /home/jordan/qp/qpc/include/qmpool.h /home/jordan/qp/qpc/include/qp.h \
+ /home/jordan/qp/qpc/include/qsafe.h \
+ /home/jordan/qp/qpc/include/qs_dummy.h

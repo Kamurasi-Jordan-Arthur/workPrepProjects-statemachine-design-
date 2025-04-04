@@ -1,0 +1,19 @@
+build/default/debug/main.p1:  \
+main.c  \
+mcc_generated_files/system/system.h  \
+mcc_generated_files/system/config_bits.h  \
+mcc_generated_files/system/../system/clock.h  \
+mcc_generated_files/system/../system/pins.h  \
+mcc_generated_files/system/../DVRT/DVRunTime.h  \
+mcc_generated_files/system/../DVRT/DVRunTime_interface.h  \
+mcc_generated_files/system/../DVRT/DVRunTime_types.h  \
+mcc_generated_files/system/../DVRT/../uart/eusart1.h  \
+mcc_generated_files/system/../DVRT/../uart/../system/system.h  \
+mcc_generated_files/system/../DVRT/../uart/uart_drv_interface.h  \
+mcc_generated_files/system/../DVRT/../uart/uart_types.h  \
+mcc_generated_files/system/../DVRT/DVRunTime_config.h  \
+mcc_generated_files/system/../uart/eusart1.h  \
+mcc_generated_files/system/../pwm/pwm3.h  \
+mcc_generated_files/system/../system/interrupt.h  \
+mcc_generated_files/system/../timer/tmr2.h  \
+mcc_generated_files/system/../timer/tmr2_deprecated.h 

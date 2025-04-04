@@ -1,0 +1,2 @@
+../3rdParty/nucleo-c031c6/nucleo-c031c6/system_stm32c0xx.c:136:6:SystemInit	8	static
+../3rdParty/nucleo-c031c6/nucleo-c031c6/system_stm32c0xx.c:184:6:SystemCoreClockUpdate	16	static

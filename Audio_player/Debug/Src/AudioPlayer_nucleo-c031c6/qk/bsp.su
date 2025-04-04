@@ -1,0 +1,25 @@
+/home/jordan/Embedded projects/Audio_player/3rdParty/CMSIS/Include/core_cm0plus.h:866:22:__NVIC_SetPriority	24	static
+/home/jordan/Embedded projects/Audio_player/3rdParty/CMSIS/Include/core_cm0plus.h:1074:26:SysTick_Config	16	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:87:12:Q_onError	16	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:108:6:assert_failed	16	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:115:6:SysTick_Handler	16	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:229:6:BSP_init	8	static,ignoring_inline_asm
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:296:6:BSP_start	24	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:337:6:BSP_displayPaused	16	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:352:6:BSP_terminate	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:358:6:QF_onStartup	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:380:6:QF_onCleanup	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:384:6:QK_onIdle	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:514:6:bspMute	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:516:6:BspSeekNext	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:517:6:BspSeekPrev	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:519:6:BspTramitSignal	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:520:6:bspTrasNext	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:521:6:bspTrasPrev	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:523:6:bspResumeRead	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:524:6:bspSaveReadState	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:526:6:bspUnmountSDCard	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:527:6:bspMountSDCard	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:529:6:bspPauseRead	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:530:6:bspReadNext	8	static
+../Src/AudioPlayer_nucleo-c031c6/qk/bsp.c:531:6:bspReadPrev	8	static
