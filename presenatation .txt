@@ -1,0 +1,35 @@
+Hey  need your help with something.
+I need to create slides for presentation for my interview.
+
+This is the cut, this Is my forth meeting with ANFA engineering, you can get inform about it on the web, it deals in IT / software development mainly for embedded devices.
+
+In the last meet up they recommended that I take some time and familiarize my self with some of the different micro controllers in the market. i.e they gave me four different micro controllers form stm, TI, Microchip 
+
+specifically they gave me an STM32f407,  STM32 NUCLEO-C031C6, PIC16F15244 Curiosity Nano and TM4C123GH6PM
+
+I proceeded with first thinking of familiarizing my self with different IDE first before I could design on these devices.
+for each I navigated alt-east one different one.
+
+I begun with the TI device for which I used its own generic code composer IDE to design a smart Irrigation system, 
+that heard this description "Imagine a smart irrigation system designed to efficiently manage water usage in an agricultural field. The system starts in an idle state, constantly monitoring soil moisture levels and weather forecasts. When the soil moisture level falls below a predefined threshold, the system transitions to a watering state, activating irrigation valves to water the crops. If the weather forecast predicts rain, the system delays irrigation to conserve water. Users can manually control the irrigation system, overriding automated processes, or set a schedule to water the crops at specific times. In the scheduled watering state, the system begins watering at the scheduled time and adjusts based on weather forecasts. An operator can put the system into maintenance mode for servicing, disabling all automated and manual watering events. The system ensures efficient water usage, prioritizes crop health, and adapts to environmental conditions, offering seamless servicing options without disrupting normal operations."
+
+I however accidentally deleted this project I was developing for the nucleo device.
+
+next I followed with the STM32F407 This was a bit challenging given its old approach to things how ever I used the VScode's extension Platformio to work this project, I created a mimic of an elevator operation to be controlled by this device 
+This was the description of the elevator " an elevator that is based off efficient movement to so serve all users fairly by moving in one direction and opening the door at all user request stops both entry and exit till no more requests are available in the direction or the elevator has reached the top at which point it advances to the opposite direction before it changes to the other direction, it hibernates to conserve power if no other requests exist." , 
+
+Next I went to the other stm device and I used this device to familiarize my self with the STM cude IDE, for this device I developed a mimic of an audio-player system that manages controls operations of a generic audio speakers that come with radio and mp3 players functionality with them. 
+
+Next I finalized with the pic to the pic micro-controller visited the MPlab IDE used the learn about its code-configurator tool here however for this device I did not create a project for it given that its QPC framework port for pic micro-controller is not yet out currently, I have however took the effort to familiarize a bit with by coding a simple glowing bulb for it. 
+
+In all these implementations I familiarized  with the debug interfaces (Disassembly view, watch-views, and ..... ) for the different IDEs that I that I used, used a mixture of the high level abstraction libraries eg (HAL,..) and direct register manipulation to arrive at my goal. incluing a bot of familiarization of build systems I highly used the help of the auto code generation tool qm tool for generation of the state machine's implementation as it promoted faster and less error prone and recommended usage of the framework with in 
+
+In all these projects the company is mostly interested in seeing how I am able to use the usage of QPC Event driven frame work for the construction  of state machine for the control of there client's proposed systems, i.e prototyping then perfection of prototypes. this should not be stated directly tho.
+In the designing of all this before the the acquisition of the boards I got Had my self create a a PELICAN system that solves the case problems described at the end of the book.
+
+Issues that I faced during this endeavor,
+Q-Spy source files no access to them,
+Issues regarding the machine 
+	possible issues from trouble shooting either failing RAM, loose connection to SSD or cracked board
+	that lead to instantaneous shut freezes that hence denial of service.
+	the free version of QPC - QXK does not contain QXK source files
