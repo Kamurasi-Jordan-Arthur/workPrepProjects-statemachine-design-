@@ -38,6 +38,8 @@
 #include "elevator.h"
 #include "qpc.h"
 #include "bsp.h"
+#include "string.h"
+#include <stdio.h>
 Q_DEFINE_THIS_FILE
 
 //$skip${QP_VERSION} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -53,6 +55,12 @@ Q_DEFINE_THIS_FILE
 //${AOs::Elevator::SM} .......................................................
 QState Elevator_initial(Elevator * const me, void const * const par) {
     //${AOs::Elevator::SM::initial}
+    (void) par;
+    printf("\t\t\tThe Elevator Operation System.\n"
+           "\tPress any of the digits (0-9) to send a request to the Operation System.\n"
+           "\tPress \"I\" to interrupt at a closing operation.\n"
+           "\tPress \"C\" to clear all requests.\n");
+
     // state history attributes
     me->hist_motion = Q_STATE_CAST(&Elevator_upWards);
     return Q_TRAN(&Elevator_operational);
@@ -62,6 +70,13 @@ QState Elevator_initial(Elevator * const me, void const * const par) {
 QState Elevator_operational(Elevator * const me, QEvt const * const e) {
     QState status_;
     switch (e->sig) {
+        //${AOs::Elevator::SM::operational}
+        case Q_ENTRY_SIG: {
+            printf("%-4s %-10s %-10s %-15s %-15s %-10s\n",
+                   "ID", "Current", "Next", "Direction", "Door State", "REQUESTS");
+            status_ = Q_HANDLED();
+            break;
+        }
         //${AOs::Elevator::SM::operational::initial}
         case Q_INIT_SIG: {
             status_ = Q_TRAN(&Elevator_Stationary);
@@ -79,6 +94,13 @@ QState Elevator_operational(Elevator * const me, QEvt const * const e) {
 QState Elevator_Stationary(Elevator * const me, QEvt const * const e) {
     QState status_;
     switch (e->sig) {
+        //${AOs::Elevator::SM::operational::Stationary}
+        case Q_ENTRY_SIG: {
+            strcpy(me->dir, "STATIC");
+            refreshFeed();
+            status_ = Q_HANDLED();
+            break;
+        }
         //${AOs::Elevator::SM::operational::Stationary}
         case Q_EXIT_SIG: {
             QTimeEvt_disarm(&me->stationaryTEvt);
@@ -107,7 +129,8 @@ QState Elevator_Closing(Elevator * const me, QEvt const * const e) {
         //${AOs::Elevator::SM::operational::Stationary::Closing}
         case Q_ENTRY_SIG: {
             QTimeEvt_armX(&me->stationaryTEvt, CLOSING_TIME, 0U); /*<== one shot */
-
+            strcpy(me->doorState, "Clossing");
+            refreshFeed();
             status_ = Q_HANDLED();
             break;
         }
@@ -146,7 +169,9 @@ QState Elevator_Openning(Elevator * const me, QEvt const * const e) {
         //${AOs::Elevator::SM::operational::Stationary::Openning}
         case Q_ENTRY_SIG: {
             orangeOff();
+            strcpy(me->doorState, "Openning");
             QTimeEvt_armX(&me->stationaryTEvt, OPENNING_TIME, 0U); /*<== one shot */
+            refreshFeed();
             status_ = Q_HANDLED();
             break;
         }
@@ -170,6 +195,8 @@ QState Elevator_Opened(Elevator * const me, QEvt const * const e) {
         //${AOs::Elevator::SM::operational::Stationary::Opened}
         case Q_ENTRY_SIG: {
             redOn();
+            strcpy(me->doorState, "Opened");
+            refreshFeed();
             QTimeEvt_armX(&me->stationaryTEvt, OPENED_WAIT_TIME, 0U); /*<== one shot */
             status_ = Q_HANDLED();
             break;
@@ -200,7 +227,8 @@ QState Elevator_closed(Elevator * const me, QEvt const * const e) {
         //${AOs::Elevator::SM::operational::Stationary::closed}
         case Q_ENTRY_SIG: {
             orangeOn();
-
+            strcpy(me->doorState, "Closed");
+            refreshFeed();
             status_ = Q_HANDLED();
             break;
         }
@@ -250,6 +278,9 @@ QState Elevator_upWards(Elevator * const me, QEvt const * const e) {
         //${AOs::Elevator::SM::operational::motion::upWards}
         case Q_ENTRY_SIG: {
             greenOn();
+            strcpy(me->dir, "upWards");
+
+
             me->next = getLowestRequest(me->current);
             //........................................................
 
@@ -258,6 +289,7 @@ QState Elevator_upWards(Elevator * const me, QEvt const * const e) {
                 QACTIVE_POST_LIFO(AOElevator, &sitchEvt);
             }else {
                 QTimeEvt_armX(&me->motionTEvt, TRANSITION_INTERVAL, TRANSITION_INTERVAL);
+                refreshFeed();
             }
 
             //........................................................
@@ -281,6 +313,7 @@ QState Elevator_upWards(Elevator * const me, QEvt const * const e) {
             }
             //${AOs::Elevator::SM::operational::motion::upWards::mTIMEOUT::[me->current==(uint8_t)MAX_LEVEL~}
             else if (me->current == (uint8_t) MAX_LEVELS) {
+                refreshFeed();
                 status_ = Q_TRAN(&Elevator_downWards);
             }
             else {
@@ -288,32 +321,16 @@ QState Elevator_upWards(Elevator * const me, QEvt const * const e) {
             }
             break;
         }
-        //${AOs::Elevator::SM::operational::motion::upWards::ENTER_REQUEST}
-        case ENTER_REQUEST_SIG: {
-            //${AOs::Elevator::SM::operational::motion::upWards::ENTER_REQUEST::[closerThanNext]}
+        //${AOs::Elevator::SM::operational::motion::upWards::REQUEST}
+        case REQUEST_SIG: {
+            //${AOs::Elevator::SM::operational::motion::upWards::REQUEST::[closerThanNext]}
             if (me->next > Q_EVT_CAST(requestEvt)->level && Q_EVT_CAST(requestEvt)->level > me->current
 )
             {
                 uint8_t assetion = already_requested( Q_EVT_CAST(requestEvt)->level);
                 Q_ASSERT(assetion);
                 me->next = Q_EVT_CAST(requestEvt)->level;
-
-                status_ = Q_HANDLED();
-            }
-            else {
-                status_ = Q_UNHANDLED();
-            }
-            break;
-        }
-        //${AOs::Elevator::SM::operational::motion::upWards::EXIT_REQUEST}
-        case EXIT_REQUEST_SIG: {
-            //${AOs::Elevator::SM::operational::motion::upWards::EXIT_REQUEST::[closerThanNext]}
-            if (me->next >= Q_EVT_CAST(requestEvt)->level && Q_EVT_CAST(requestEvt)->level > me->current) {
-                uint8_t assetion = already_requested( Q_EVT_CAST(requestEvt)->level);
-                Q_ASSERT(assetion);
-
-                me->next = Q_EVT_CAST(requestEvt)->level;
-
+                refreshFeed();
                 status_ = Q_HANDLED();
             }
             else {
@@ -341,6 +358,9 @@ QState Elevator_downWards(Elevator * const me, QEvt const * const e) {
         //${AOs::Elevator::SM::operational::motion::downWards}
         case Q_ENTRY_SIG: {
             blueOn();
+            strcpy(me->dir, "downWards");
+            refreshFeed();
+
             me->next = getHighestRequest(me->current);
             //........................................................
 
@@ -349,6 +369,7 @@ QState Elevator_downWards(Elevator * const me, QEvt const * const e) {
                 QACTIVE_POST_LIFO(AOElevator, &sitchEvt);
             }else {
                 QTimeEvt_armX(&me->motionTEvt, TRANSITION_INTERVAL, TRANSITION_INTERVAL);
+                refreshFeed();
             }
             //........................................................
 
@@ -364,29 +385,13 @@ QState Elevator_downWards(Elevator * const me, QEvt const * const e) {
             status_ = Q_HANDLED();
             break;
         }
-        //${AOs::Elevator::SM::operational::motion::downWards::ENTER_REQUEST}
-        case ENTER_REQUEST_SIG: {
-            //${AOs::Elevator::SM::operational::motion::downWards::ENTER_REQUEST::[closerThanNext]}
+        //${AOs::Elevator::SM::operational::motion::downWards::REQUEST}
+        case REQUEST_SIG: {
+            //${AOs::Elevator::SM::operational::motion::downWards::REQUEST::[closerThanNext]}
             if (me->next < Q_EVT_CAST(requestEvt)->level && Q_EVT_CAST(requestEvt)->level < me->current) {
                 Q_ASSERT(already_requested( Q_EVT_CAST(requestEvt)->level));
                 me->next = Q_EVT_CAST(requestEvt)->level;
-
-                status_ = Q_HANDLED();
-            }
-            else {
-                status_ = Q_UNHANDLED();
-            }
-            break;
-        }
-        //${AOs::Elevator::SM::operational::motion::downWards::EXIT_REQUEST}
-        case EXIT_REQUEST_SIG: {
-            //${AOs::Elevator::SM::operational::motion::downWards::EXIT_REQUEST::[closerThanNext]}
-            if (me->next < Q_EVT_CAST(requestEvt)->level && Q_EVT_CAST(requestEvt)->level < me->current
-)
-            {
-                Q_ASSERT(already_requested( Q_EVT_CAST(requestEvt)->level));
-                me->next = Q_EVT_CAST(requestEvt)->level;
-
+                refreshFeed();
                 status_ = Q_HANDLED();
             }
             else {
@@ -403,6 +408,7 @@ QState Elevator_downWards(Elevator * const me, QEvt const * const e) {
             }
             //${AOs::Elevator::SM::operational::motion::downWards::mTIMEOUT::[me->current==(uint8_t)1U]}
             else if (me->current == (uint8_t) 1U) {
+                refreshFeed();
                 status_ = Q_TRAN(&Elevator_upWards);
             }
             else {
@@ -447,64 +453,27 @@ void Elevator_Ctor(void) {
 QActive * AOElevator = &Elevator_inst.super;
 //$enddef${AOs::AOElevator} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-//$define${AOs::Requestor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//$define${AOs::Requestor}
 
-//${AOs::Requestor} ..........................................................
+//$define${AOs::Requestor_inst}
 
-//${AOs::Requestor::SM} ......................................................
-QState Requestor_initial(Requestor * const me, void const * const par) {
-    //${AOs::Requestor::SM::initial}
-    return Q_TRAN(&Requestor_requesting_state);
+//$define${AOs::Requestor_Ctor}
+
+//$define${AOs::AORequestor}
+
+void refreshFeed(void){
+
+    printf("%-4s %-10s %-10s %-15s %-15s %-10s\n",
+           "ID", "Current", "Next", "Direction", "Door State", "REQUESTS");
+
+    printf("%-4d %-10d %-10d %-15s %-15s 0x%08X\n",
+           Elevator_inst.iD++,
+           Elevator_inst.current,
+           Elevator_inst.next,
+           Elevator_inst.dir,
+           Elevator_inst.doorState,
+           requests);
 }
-
-//${AOs::Requestor::SM::requesting_state} ....................................
-QState Requestor_requesting_state(Requestor * const me, QEvt const * const e) {
-    QState status_;
-    switch (e->sig) {
-        //${AOs::Requestor::SM::requesting_state::ENTER_REQUEST}
-        case ENTER_REQUEST_SIG: {
-            request(ENTER_REQUEST_SIG);
-
-            status_ = Q_HANDLED();
-            break;
-        }
-        //${AOs::Requestor::SM::requesting_state::EXIT_REQUEST}
-        case EXIT_REQUEST_SIG: {
-            request(EXIT_REQUEST_SIG);
-            status_ = Q_HANDLED();
-            break;
-        }
-        default: {
-            status_ = Q_SUPER(&QHsm_top);
-            break;
-        }
-    }
-    return status_;
-}
-//$enddef${AOs::Requestor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//$define${AOs::Requestor_inst} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-//${AOs::Requestor_inst} .....................................................
-static Requestor Requestor_inst;
-//$enddef${AOs::Requestor_inst} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//$define${AOs::Requestor_Ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-//${AOs::Requestor_Ctor} .....................................................
-void Requestor_Ctor(void) {
-    Requestor * me = &Requestor_inst;
-    QActive_ctor(&me->super, Q_STATE_CAST(&Requestor_initial));
-
-}
-//$enddef${AOs::Requestor_Ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//$define${AOs::AORequestor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-//${AOs::AORequestor} ........................................................
-QActive * AORequestor = &Requestor_inst.super;
-//$enddef${AOs::AORequestor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 
 
 

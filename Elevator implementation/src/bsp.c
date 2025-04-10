@@ -32,33 +32,18 @@
 // <info@state-machine.com>
 //============================================================================
 #include "qpc.h"                 // QP/C real-time embedded framework
-// #include "dpp.h"                 // DPP Application interface
+#include "main.h"                 // main header
 #include "bsp.h"                 // Board Support Package
 #include "elevator.h"            // Elevator specifics
+#include <stdio.h>
+#include "usb_device.h"
 
 
 #include "stm32f4xx.h"  // CMSIS-compliant header file for the MCU used
-#include "stm32f4xx_exti.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_rcc.h"
-#include "stm32f4xx_usart.h"
-// #include "stm32f4xx.h"  // CMSIS-compliant header file for the MCU used
-// #include "stm32f4xx_exti.h"
-// #include "stm32f4xx_gpio.h"
-// #include "stm32f4xx_rcc.h"
-// #include "stm32f4xx_usart.h"
-
-// #define LED_GPIO_PORT     GPIOD
-// #define LED_GPIO_CLK      RCC_AHB1Periph_GPIOD
-
-// #define GREEN_PIN          GPIO_Pin_12
-// #define ORANGE_PIN          GPIO_Pin_13
-// #define RED_PIN          GPIO_Pin_14
-// #define BLUE_PIN          GPIO_Pin_15
-
-// #define BTN_GPIO_PORT     GPIOA
-// #define BTN_GPIO_CLK      RCC_AHB1Periph_GPIOA
-// #define BTN_B1            GPIO_Pin_0
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_usart.h" // if using USART
+#include "stm32f4xx_hal_gpio.h"  // for GPIO
+#include "stm32f4xx_hal_rcc.h"   // for RCC functions (usually included via main HAL)
 
 // add other drivers if necessary...
 
@@ -68,17 +53,22 @@ Q_DEFINE_THIS_FILE  // define the name of this file for assertions
 #define LED_GPIO_PORT     GPIOD
 #define LED_GPIO_CLK      RCC_AHB1Periph_GPIOD
 
-#define DOWN_PIN           GPIO_Pin_2
-#define INTERUPT_PIN       GPIO_Pin_3
-#define GREEN_PIN          GPIO_Pin_12
-#define ORANGE_PIN         GPIO_Pin_13
-#define RED_PIN            GPIO_Pin_14
-#define BLUE_PIN           GPIO_Pin_15
+
+#define GREEN_PIN          GPIO_PIN_12
+#define ORANGE_PIN         GPIO_PIN_13
+#define RED_PIN            GPIO_PIN_14
+#define BLUE_PIN           GPIO_PIN_15
+
+#define LED_GPIO_PORT      GPIOD
+#define BTN_GPIO_PORT      GPIOA
+#define BTN_B1             GPIO_PIN_0
+
 
 
 #define BTN_GPIO_PORT     GPIOA
 #define BTN_GPIO_CLK      RCC_AHB1Periph_GPIOA
-#define BTN_B1            GPIO_Pin_0
+
+// USART Constants
 
 static uint32_t l_rndSeed;
 
@@ -194,44 +184,6 @@ uint16_t getHighestRequest(uint16_t base){
     return ret;
 }
 
-//..........................................................................
-// request function for when buttons are pressed
-void request(uint16_t SIG){
-    volatile uint32_t rad = BSP_random();
-    rad %= (uint32_t) MAX_LEVELS;
-
-    if(rad){
-        requestEvt * RequestEve = Q_NEW(requestEvt ,SIG);
-        RequestEve->level = rad;
-
-        if (!already_requested(rad)){
-            register_request(rad);
-            QACTIVE_POST(AOElevator, (QEvtPtr)RequestEve, (void)0U );
-        }
-
-        rad %= (MAX_LEVELS / (uint32_t)2);
-        if(rad){
-            RequestEve = Q_NEW(requestEvt ,SIG);
-            RequestEve->level = rad;
-
-            if (!already_requested(rad)){
-                register_request(rad);
-                QACTIVE_POST(AOElevator, (QEvtPtr)RequestEve, (void)0U );
-            }
-            rad %= (uint32_t)2;
-
-            if(rad){
-                RequestEve = Q_NEW(requestEvt ,SIG);
-                RequestEve->level = rad;
-                if (!already_requested(rad)){
-                    register_request(rad);
-                    QACTIVE_POST(AOElevator, (QEvtPtr)RequestEve, (void)0U );
-                }
-            }
-        }
-    }
-}
-
 
 //..........................................................................
 
@@ -247,37 +199,39 @@ void SysTick_Handler(void) {
     // and Michael Barr, page 71.
     //
     // state of the button debouncing
-    static struct {
-        uint32_t depressed;
-        uint32_t previous;
-    } buttons = { 0U, 0U };
+    // static struct {
+    //     uint32_t depressed;
+    //     uint32_t previous;
+    // } buttons = { 0U, 0U };
 
-    uint32_t current = BTN_GPIO_PORT->IDR; // read BTN GPIO
-    uint32_t tmp = buttons.depressed; // save the depressed buttons
-    buttons.depressed |= (buttons.previous & current); // set depressed
-    buttons.depressed &= (buttons.previous | current); // clear released
-    buttons.previous   = current; // update the history
-    tmp ^= buttons.depressed;     // changed debounced depressed
-    current = buttons.depressed;
+    // uint32_t current = BTN_GPIO_PORT->IDR; // read BTN GPIO
+    // uint32_t tmp = buttons.depressed; // save the depressed buttons
+    // buttons.depressed |= (buttons.previous & current); // set depressed
+    // buttons.depressed &= (buttons.previous | current); // clear released
+    // buttons.previous   = current; // update the history
+    // tmp ^= buttons.depressed;     // changed debounced depressed
+    // current = buttons.depressed;
 
-    if ((tmp & BTN_B1) != 0U) { // debounced B1 state changed?
-        if ((current & BTN_B1) != 0U) { // is B1 depressed?
-            static QEvt const enterEvt = QEVT_INITIALIZER(ENTER_REQUEST_SIG);
-            QACTIVE_POST(AORequestor, &enterEvt, (void)0 );
-        }
-        else { // the button is released
-            static QEvt const exitEvt = QEVT_INITIALIZER(EXIT_REQUEST_SIG);
-            QACTIVE_POST(AORequestor, &exitEvt, (void)0 );
-        }
+    // if ((tmp & BTN_B1) != 0U) { // debounced B1 state changed?
+    //     if ((current & BTN_B1) != 0U) { // is B1 depressed?
+    //         static QEvt const enterEvt = QEVT_INITIALIZER(ENTER_REQUEST_SIG);
+    //         QACTIVE_POST(AORequestor, &enterEvt, (void)0 );
+    //     }
+    //     else { // the button is released
+    //         static QEvt const exitEvt = QEVT_INITIALIZER(EXIT_REQUEST_SIG);
+    //         QACTIVE_POST(AORequestor, &exitEvt, (void)0 );
+    //     }
         // if ((current & DOWN_PIN) != 0U) { // is B1 depressed?
         //     static QEvt const dowEvt = QEVT_INITIALIZER(DOWN_REQUEST_SIG);
         //     QACTIVE_POST(AORequestor, &dowEvt, (void)0 );
         // }
-        if ((current & INTERUPT_PIN) != 0U) { // is B1 depressed?
-            static QEvt const intPress = QEVT_INITIALIZER(CLOSE_INTERRUPT_SIG);
-            QACTIVE_POST(AOElevator, &intPress, (void)0 );
-        }
-    }
+        // if ((current & INTERUPT_PIN) != 0U) { // is B1 depressed?
+        //     static QEvt const intPress = QEVT_INITIALIZER(CLOSE_INTERRUPT_SIG);
+        //     QACTIVE_POST(AOElevator, &intPress, (void)0 );
+        // }
+    // }
+
+    
 
 #ifdef Q_SPY
     tmp = SysTick->CTRL; // clear CTRL_COUNTFLAG
@@ -287,7 +241,33 @@ void SysTick_Handler(void) {
     QV_ARM_ERRATUM_838869();
 }
 
+UART_HandleTypeDef huart2;
+uint8_t uart_rx_byte;
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART2) {
+        char received_data = (char)uart_rx_byte;
+
+        if (received_data >= '0' && received_data <= '9') {
+            requestEvt * RequestEve = Q_NEW(requestEvt ,REQUEST_SIG);
+            RequestEve->level = received_data - '0';
+
+            if (!already_requested(RequestEve->level)){
+                register_request(RequestEve->level);
+                QACTIVE_POST(AOElevator, (QEvtPtr)RequestEve, (void*)0U);
+            }
+        } else if (received_data == 'I' || received_data == 'i') {
+            static QEvt const intPress = QEVT_INITIALIZER(CLOSE_INTERRUPT_SIG);
+            QACTIVE_POST(AOElevator, &intPress, (void*)0);
+        } else if (received_data == 'C' || received_data == 'c') {
+            requests = 0U;
+        } else if (received_data != '\n' && received_data != '\r') {
+            printf("Invalid input: %c\n", received_data);
+        }
+
+        HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
+    }
+}
 
 //............................................................................
 #ifdef Q_SPY
@@ -321,6 +301,105 @@ void QF_onContextSw(QActive *prev, QActive *next) {
 
 //============================================================================
 // BSP functions...
+void UART_Init(void); // prototype
+void UART_Init(void) {
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_USART2_CLK_ENABLE();
+
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    huart2.Instance = USART2;
+    huart2.Init.BaudRate = 115200;
+    huart2.Init.WordLength = UART_WORDLENGTH_8B;
+    huart2.Init.StopBits = UART_STOPBITS_1;
+    huart2.Init.Parity = UART_PARITY_NONE;
+    huart2.Init.Mode = UART_MODE_TX_RX;
+    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+    HAL_UART_Init(&huart2);
+
+    // HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+    // HAL_NVIC_EnableIRQ(USART2_IRQn);
+    HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
+}
+
+
+static void MX_GPIO_Init(void);
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+
+void SystemClock_Config(void);
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
 
 void BSP_init(void) {
     
@@ -340,56 +419,39 @@ void BSP_init(void) {
 
     // NOTE: SystemInit() has been already called from the startup code
     // but SystemCoreClock needs to be updated
+    HAL_Init();
+
+    //configure the system clock
+    SystemClock_Config();
+
     SystemCoreClockUpdate();
 
+  /* Initialize all configured peripherals */
+    MX_GPIO_Init();
+    MX_USB_DEVICE_Init();
+    
     // NOTE The VFP (Floating Point Unit) unit is configured by QK-port
 
     // Initialize thr port for the LEDs
-    RCC_AHB1PeriphClockCmd(LED_GPIO_CLK , ENABLE);
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    // GPIO Configuration for the LEDs...
-    GPIO_InitTypeDef GPIO_struct;
-    GPIO_struct.GPIO_Mode  = GPIO_Mode_OUT;
-    GPIO_struct.GPIO_OType = GPIO_OType_PP;
-    GPIO_struct.GPIO_PuPd  = GPIO_PuPd_UP;
-    GPIO_struct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.Pin = ORANGE_PIN | GREEN_PIN | RED_PIN | BLUE_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 
-    GPIO_struct.GPIO_Pin = ORANGE_PIN;
-    GPIO_Init(LED_GPIO_PORT, &GPIO_struct);
-    LED_GPIO_PORT->BSRRH = ORANGE_PIN; // turn LED off
+    HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN | GREEN_PIN | RED_PIN | BLUE_PIN, GPIO_PIN_RESET);
 
-    GPIO_struct.GPIO_Pin = GREEN_PIN;
-    GPIO_Init(LED_GPIO_PORT, &GPIO_struct);
-    LED_GPIO_PORT->BSRRH = GREEN_PIN; // turn LED off
+    // __HAL_RCC_GPIOA_CLK_ENABLE();
+    // GPIO_InitStruct.Pin = BTN_B1;
+    // GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    // GPIO_InitStruct.Pull = GPIO_NOPULL;
+    // HAL_GPIO_Init(BTN_GPIO_PORT, &GPIO_InitStruct);
 
-    GPIO_struct.GPIO_Pin = RED_PIN;
-    GPIO_Init(LED_GPIO_PORT, &GPIO_struct);
-    LED_GPIO_PORT->BSRRH = RED_PIN; // turn LED off
-
-    GPIO_struct.GPIO_Pin = BLUE_PIN;
-    GPIO_Init(LED_GPIO_PORT, &GPIO_struct);
-    LED_GPIO_PORT->BSRRH = BLUE_PIN; // turn LED off
-
-
-
-    // Initialize thr port for Button
-    RCC_AHB1PeriphClockCmd(BTN_GPIO_CLK , ENABLE);
-
-    // GPIO Configuration for the Button...
-    GPIO_struct.GPIO_Pin   = BTN_B1;
-    GPIO_struct.GPIO_Mode  = GPIO_Mode_IN;
-    GPIO_struct.GPIO_OType = GPIO_OType_PP;
-    GPIO_struct.GPIO_PuPd  = GPIO_PuPd_DOWN;
-    GPIO_struct.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(BTN_GPIO_PORT, &GPIO_struct);
-
-    GPIO_struct.GPIO_Pin = INTERUPT_PIN;
-    GPIO_Init(BTN_GPIO_PORT, &GPIO_struct);
-
-    GPIO_struct.GPIO_Pin = DOWN_PIN;
-    GPIO_Init(BTN_GPIO_PORT, &GPIO_struct);
-
-    BSP_randomSeed(1234U); // seed the random number generator
+    // UART_Init();
+    // BSP_randomSeed(1234U); // seed the random number generator
 
     // initialize the QS software tracing...
     if (!QS_INIT((void *)0)) {
@@ -408,26 +470,31 @@ void BSP_init(void) {
     QS_GLB_FILTER(QS_ALL_RECORDS);   // all records
     QS_GLB_FILTER(-QS_QF_TICK);      // exclude the clock tick
 }
+
+
+
 //............................................................................
 void BSP_start(void) {
     // initialize event pools
     static QF_MPOOL_EL(requestEvt) smlPoolSto[MAX_LEVELS];
     QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));
 
+    // static QF_MPOOL_EL(printDataEvt) mediumlPoolSto[MAX_LEVELS];
+    // QF_poolInit(mediumlPoolSto, sizeof(mediumlPoolSto), sizeof(mediumlPoolSto[0]));
     // initialize publish-subscribe
     // static QSubscrList subscrSto[MAX_PUB_SIG];   // not used in my application
     // QActive_psInit(subscrSto, Q_DIM(subscrSto));
 
     // instantiate and start AOs/threads...
 
-    static QEvtPtr RequestorQueueSto[4];
-    Requestor_Ctor();
-    QActive_start(AORequestor,
-        3U,                // QP prio. of the Requestor I dont know why we skip the first 2
-        RequestorQueueSto,               // event queue storage
-        Q_DIM(RequestorQueueSto),        // queue length [events]
-        (void *)0, 0U,               // no stack storage
-        (void *)0);                  // no initialization param
+    // static QEvtPtr RequestorQueueSto[4];
+    // Requestor_Ctor();
+    // QActive_start(AORequestor,
+    //     3U,                // QP prio. of the Requestor I dont know why we skip the first 2
+    //     RequestorQueueSto,               // event queue storage
+    //     Q_DIM(RequestorQueueSto),        // queue length [events]
+    //     (void *)0, 0U,               // no stack storage
+    //     (void *)0);                  // no initialization param
 
 
     static QEvtPtr elevatorQueueSto[MAX_LEVELS];
@@ -440,66 +507,25 @@ void BSP_start(void) {
         (void *)0);                  // no initialization param
 }
 //............................................................................
-void orangeOn(){
-    LED_GPIO_PORT->BSRRL = ORANGE_PIN;
-}
+void orangeOn()  { HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN, GPIO_PIN_SET); }
+void orangeOff() { HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN, GPIO_PIN_RESET); }
 
-void orangeOff(){
-    LED_GPIO_PORT->BSRRH = ORANGE_PIN;
-}
+void greenOn()   { HAL_GPIO_WritePin(LED_GPIO_PORT, GREEN_PIN, GPIO_PIN_SET); }
+void greenOff()  { HAL_GPIO_WritePin(LED_GPIO_PORT, GREEN_PIN, GPIO_PIN_RESET); }
 
-void greenOn(){
-    LED_GPIO_PORT->BSRRL = GREEN_PIN;
-}
+void redOn()     { HAL_GPIO_WritePin(LED_GPIO_PORT, RED_PIN, GPIO_PIN_SET); }
+void redOff()    { HAL_GPIO_WritePin(LED_GPIO_PORT, RED_PIN, GPIO_PIN_RESET); }
 
-void greenOff(){
-    LED_GPIO_PORT->BSRRH = GREEN_PIN;
-}
+void blueOn()    { HAL_GPIO_WritePin(LED_GPIO_PORT, BLUE_PIN, GPIO_PIN_SET); }
+void blueOff()   { HAL_GPIO_WritePin(LED_GPIO_PORT, BLUE_PIN, GPIO_PIN_RESET); }
 
-void redOn(){
-    LED_GPIO_PORT->BSRRL = RED_PIN;
-}
-
-void redOff(){
-    LED_GPIO_PORT->BSRRH = RED_PIN;
-}
-
-void blueOn(){
-    LED_GPIO_PORT->BSRRL = BLUE_PIN;
-}
-
-void blueOff(){
-    LED_GPIO_PORT->BSRRH = BLUE_PIN;
-}
-//.........................................................................
-
-// void BSP_displayPhilStat(uint8_t n, char const *stat) {
-//     Q_UNUSED_PAR(n);
-
-//     if (stat[0] == 'h') {
-//         LED_GPIO_PORT->BSRRL = ORANGE_PIN; // turn LED on
-//     }
-//     else {
-//         LED_GPIO_PORT->BSRRH = ORANGE_PIN; // turn LED off
-//     }
-//     if (stat[0] == 'e') {
-//         LED_GPIO_PORT->BSRRL = RED_PIN; // turn LED on
-//     }
-//     else {
-//         LED_GPIO_PORT->BSRRH = RED_PIN; // turn LED off
-//     }
-
-//     // app-specific trace record...
-//     QS_BEGIN_ID(PHILO_STAT, AO_Table->prio)
-//         QS_U8(1, n);  // Philosopher number
-//         QS_STR(stat); // Philosopher status
-//     QS_END()
-// }
-
-//............................................................................
 
 void BSP_randomSeed(uint32_t seed) {
     l_rndSeed = seed;
+}
+
+void Error_Handler(void){
+    Q_ERROR();
 }
 //............................................................................
 uint32_t BSP_random(void) { // a very cheap pseudo-random-number generator
@@ -522,15 +548,18 @@ uint32_t BSP_random(void) { // a very cheap pseudo-random-number generator
 // QF callbacks...
 void QF_onStartup(void) {
     // set up the SysTick timer to fire at BSP_TICKS_PER_SEC rate
+    SystemCoreClockUpdate();
     SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
 
     // assign all priority bits for preemption-prio. and none to sub-prio.
     NVIC_SetPriorityGrouping(0U);
 
     // set priorities of ALL ISRs used in the system, see NOTE1
-    NVIC_SetPriority(USART2_IRQn,    0U); // kernel UNAWARE interrupt
-    NVIC_SetPriority(SysTick_IRQn,   QF_AWARE_ISR_CMSIS_PRI + 1U);
-    // ...
+    // HAL_NVIC_SetPriority(USART2_IRQn, QF_AWARE_ISR_CMSIS_PRI+1U , 0); 
+    HAL_NVIC_SetPriority(SysTick_IRQn,   QF_AWARE_ISR_CMSIS_PRI + 2U, 0);
+    // ...........................................................
+    HAL_NVIC_EnableIRQ(SysTick_IRQn);
+    // HAL_NVIC_EnableIRQ(USART2_IRQn); // USART2 interrupt used for RX over Usart2
 
     // enable IRQs...
 #ifdef Q_SPY
@@ -693,6 +722,10 @@ void QS_onCommand(uint8_t cmdId,
 }
 
 #endif // Q_SPY
+//----------------------------------------------------------------------------
+
+
+
 //----------------------------------------------------------------------------
 
 //============================================================================

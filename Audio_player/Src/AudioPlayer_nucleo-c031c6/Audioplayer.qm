@@ -99,7 +99,7 @@ QTimeEvt_ctorX(&amp;me-&gt;volTimerEvt, &amp;me-&gt;super, TIMEOUT_SIG, 0U);</co
     <initial target="../1">
      <action>me-&gt;vol = 3U;
 me-&gt;volChanged = 0U;</action>
-     <initial_glyph conn="29,21,5,0,15,6">
+     <initial_glyph conn="29,31,5,0,15,2">
       <action box="0,-2,10,2"/>
      </initial_glyph>
     </initial>
@@ -107,7 +107,7 @@ me-&gt;volChanged = 0U;</action>
     <state name="MODE">
      <!--${AOs::AudioPlayer::SM::MODE::initial}-->
      <initial target="../6">
-      <initial_glyph conn="31,33,5,0,4,5">
+      <initial_glyph conn="24,35,5,0,11,2">
        <action box="0,-2,10,2"/>
       </initial_glyph>
      </initial>
@@ -116,7 +116,7 @@ me-&gt;volChanged = 0U;</action>
       <action>QTimeEvt_armX(&amp;me-&gt;volTimerEvt, VOL_INTERVAL, VOL_INTERVAL);
 me-&gt;sign = (uint8_t)PLUS;
 </action>
-      <tran_glyph conn="107,36,1,-1,-19,3">
+      <tran_glyph conn="110,35,1,-1,-22,3">
        <action box="-14,-3,10,2"/>
       </tran_glyph>
      </tran>
@@ -128,7 +128,7 @@ me-&gt;sign = (uint8_t)PLUS;
        <guard>me-&gt;sign == (uint8_t)PLUS</guard>
        <action>me-&gt;vol++;
 </action>
-       <choice_glyph conn="99,49,5,-1,-11,-5">
+       <choice_glyph conn="99,48,5,-1,-11,-5">
         <action box="-16,-3,22,2"/>
        </choice_glyph>
       </choice>
@@ -136,11 +136,11 @@ me-&gt;sign = (uint8_t)PLUS;
       <choice>
        <guard>else</guard>
        <action>me-&gt;vol--;</action>
-       <choice_glyph conn="99,49,5,-1,-8,5">
+       <choice_glyph conn="99,48,5,-1,-8,5">
         <action box="-7,1,10,2"/>
        </choice_glyph>
       </choice>
-      <tran_glyph conn="107,49,1,-1,-8">
+      <tran_glyph conn="110,48,1,-1,-11">
        <action box="-7,1,15,2"/>
       </tran_glyph>
      </tran>
@@ -149,7 +149,7 @@ me-&gt;sign = (uint8_t)PLUS;
       <action>QTimeEvt_armX(&amp;me-&gt;volTimerEvt, VOL_INTERVAL, VOL_INTERVAL);
 me-&gt;sign = (uint8_t)MINUS;
 </action>
-      <tran_glyph conn="107,63,1,-1,-19,-2">
+      <tran_glyph conn="110,62,1,-1,-22,-2">
        <action box="-15,-2,10,2"/>
       </tran_glyph>
      </tran>
@@ -164,7 +164,7 @@ me-&gt;sign = (uint8_t)MINUS;
         <guard>me-&gt;sign == (uint8_t)PLUS</guard>
         <action brief="NEXT">static const QEvt nextEvt = QEVT_INITIALIZER(NEXT_SIG);
 QACTIVE_POST(AO_AudioPlayer, &amp;nextEvt, (void)0U);</action>
-        <choice_glyph conn="94,86,5,-1,6,6">
+        <choice_glyph conn="94,85,5,-1,6,6">
          <action box="0,8,23,5"/>
         </choice_glyph>
        </choice>
@@ -173,11 +173,11 @@ QACTIVE_POST(AO_AudioPlayer, &amp;nextEvt, (void)0U);</action>
         <guard>else</guard>
         <action brief="PREVIOUS">static const QEvt prevEvt = QEVT_INITIALIZER(PREV_SIG);
 QACTIVE_POST(AO_AudioPlayer, &amp;prevEvt, (void)0U);</action>
-        <choice_glyph conn="94,86,5,-1,-6,6">
+        <choice_glyph conn="94,85,5,-1,-6,6">
          <action box="-15,0,11,7"/>
         </choice_glyph>
        </choice>
-       <choice_glyph conn="94,79,4,-1,7">
+       <choice_glyph conn="94,78,4,-1,7">
         <action box="1,3,17,2"/>
        </choice_glyph>
       </choice>
@@ -185,17 +185,17 @@ QACTIVE_POST(AO_AudioPlayer, &amp;prevEvt, (void)0U);</action>
       <choice>
        <guard>else</guard>
        <action>me-&gt;volChanged = 0U;</action>
-       <choice_glyph conn="94,79,5,-1,-7">
+       <choice_glyph conn="94,78,5,-1,-7">
         <action box="1,0,10,2"/>
        </choice_glyph>
       </choice>
-      <tran_glyph conn="107,73,1,-1,-13,6">
+      <tran_glyph conn="110,72,1,-1,-16,6">
        <action box="-25,-2,33,4"/>
       </tran_glyph>
      </tran>
      <!--${AOs::AudioPlayer::SM::MODE::TERMINATE}-->
      <tran trig="TERMINATE" target="../../2">
-      <tran_glyph color="2" conn="107,101,1,0,9,5">
+      <tran_glyph color="2" conn="110,98,1,0,17,-16">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
@@ -205,7 +205,7 @@ QACTIVE_POST(AO_AudioPlayer, &amp;prevEvt, (void)0U);</action>
       <exit>//Disconnect the Antenna</exit>
       <!--${AOs::AudioPlayer::SM::MODE::Radio::MODE}-->
       <tran trig="MODE" target="../../7">
-       <tran_glyph conn="31,65,2,0,5">
+       <tran_glyph conn="31,64,2,0,5">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -213,7 +213,7 @@ QACTIVE_POST(AO_AudioPlayer, &amp;prevEvt, (void)0U);</action>
       <tran trig="PLAYPAUSE">
        <action>//Mute the speckers
 bspMute();</action>
-       <tran_glyph conn="50,45,1,-1,-11">
+       <tran_glyph conn="50,44,1,-1,-11">
         <action box="-14,-3,15,2"/>
        </tran_glyph>
       </tran>
@@ -221,7 +221,7 @@ bspMute();</action>
       <tran trig="NEXT">
        <action>//Play next radio Satation
 BspSeekNext();</action>
-       <tran_glyph conn="20,47,3,-1,12">
+       <tran_glyph conn="26,46,3,-1,6">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -229,11 +229,11 @@ BspSeekNext();</action>
       <tran trig="PREV">
        <action>//play previous station
 BspSeekPrev();</action>
-       <tran_glyph conn="20,51,3,-1,10">
+       <tran_glyph conn="26,50,3,-1,4">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="20,38,30,27">
+      <state_glyph node="26,37,24,27">
        <entry box="0,3,6,2"/>
        <exit box="0,5,6,2"/>
       </state_glyph>
@@ -243,13 +243,13 @@ BspSeekPrev();</action>
       <exit>//DIs able the BT Module and </exit>
       <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::initial}-->
       <initial target="../5">
-       <initial_glyph conn="43,75,5,0,4,3">
+       <initial_glyph conn="43,74,5,0,4,3">
         <action box="0,-2,10,2"/>
        </initial_glyph>
       </initial>
       <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::MODE}-->
       <tran trig="MODE" target="../../8">
-       <tran_glyph conn="74,70,0,2,-3">
+       <tran_glyph conn="74,69,0,2,-3">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -257,7 +257,7 @@ BspSeekPrev();</action>
       <tran trig="PLAYPAUSE">
        <action>//transmit the paly play sinal command to the Master
 BspTramitSignal();</action>
-       <tran_glyph conn="23,80,3,-1,12">
+       <tran_glyph conn="28,79,3,-1,7">
         <action box="0,-2,15,2"/>
        </tran_glyph>
       </tran>
@@ -265,7 +265,7 @@ BspTramitSignal();</action>
       <tran trig="NEXT">
        <action>//transmit the next signal command to master
 bspTrasNext();</action>
-       <tran_glyph conn="23,84,3,-1,9">
+       <tran_glyph conn="28,83,3,-1,4">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -273,7 +273,7 @@ bspTrasNext();</action>
       <tran trig="PREV">
        <action>//transmit the previous signal command to master
 bspTrasPrev();</action>
-       <tran_glyph conn="23,88,3,-1,11">
+       <tran_glyph conn="28,87,3,-1,6">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -282,11 +282,11 @@ bspTrasPrev();</action>
        <entry>//Power BT Module and set the device in slave mode</entry>
        <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::BT_Init::DONE}-->
        <tran trig="DONE" target="../../6">
-        <tran_glyph color="1" conn="55,83,1,3,6">
+        <tran_glyph color="1" conn="55,82,1,3,6">
          <action box="0,-2,10,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph color="3" node="40,78,15,10">
+       <state_glyph color="3" node="40,77,15,10">
         <entry box="0,3,6,2"/>
        </state_glyph>
       </state>
@@ -294,17 +294,17 @@ bspTrasPrev();</action>
       <state name="Pairing">
        <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::Pairing::DONE}-->
        <tran trig="DONE" target="../../7">
-        <tran_glyph color="1" conn="66,87,2,1,7,-4">
+        <tran_glyph color="1" conn="66,86,2,1,6,-4">
          <action box="0,4,10,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph color="3" node="61,79,12,8"/>
+       <state_glyph color="3" node="61,78,12,8"/>
       </state>
       <!--${AOs::AudioPlayer::SM::MODE::Bluetooth::Pair}-->
       <state name="Pair">
-       <state_glyph color="3" node="52,90,10,7"/>
+       <state_glyph color="3" node="52,88,10,7"/>
       </state>
-      <state_glyph node="23,70,56,30">
+      <state_glyph node="28,69,51,28">
        <exit box="0,3,6,2"/>
       </state_glyph>
      </state>
@@ -318,7 +318,7 @@ bspSaveReadState();
 bspUnmountSDCard();</exit>
       <!--${AOs::AudioPlayer::SM::MODE::SD_card_Input::MODE}-->
       <tran trig="MODE" target="../../6">
-       <tran_glyph conn="56,59,3,1,-6">
+       <tran_glyph conn="59,58,3,1,-9">
         <action box="-8,-3,10,2"/>
        </tran_glyph>
       </tran>
@@ -326,7 +326,7 @@ bspUnmountSDCard();</exit>
       <tran trig="PLAYPAUSE">
        <action>//pause current read and play operation
 bspPauseRead();</action>
-       <tran_glyph conn="56,50,3,-1,13">
+       <tran_glyph conn="59,49,3,-1,10">
         <action box="0,0,12,2"/>
        </tran_glyph>
       </tran>
@@ -334,7 +334,7 @@ bspPauseRead();</action>
       <tran trig="NEXT">
        <action>//Read Next mp3file from card.
 bspReadNext();</action>
-       <tran_glyph conn="56,56,3,-1,12">
+       <tran_glyph conn="59,55,3,-1,9">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
@@ -342,21 +342,21 @@ bspReadNext();</action>
       <tran trig="PREV">
        <action>//Read Previos mp3file from card.
 bspReadPrev();</action>
-       <tran_glyph conn="56,62,3,-1,9">
+       <tran_glyph conn="59,61,3,-1,6">
         <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="56,42,27,25">
+      <state_glyph node="59,41,24,25">
        <entry box="0,3,6,2"/>
        <exit box="0,5,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="14,27,93,82"/>
+     <state_glyph node="20,33,90,67"/>
     </state>
     <!--${AOs::AudioPlayer::SM::OFF}-->
     <state name="OFF">
      <entry>BSP_terminate();</entry>
-     <state_glyph color="2" node="111,106,8,9">
+     <state_glyph color="2" node="122,82,8,9">
       <entry box="0,3,6,2"/>
      </state_glyph>
     </state>

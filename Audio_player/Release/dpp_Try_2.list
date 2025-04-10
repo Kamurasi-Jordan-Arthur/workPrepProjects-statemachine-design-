@@ -589,7 +589,7 @@ Disassembly of section .text:
  800055a:	2380      	movs	r3, #128	@ 0x80
  800055c:	01db      	lsls	r3, r3, #7
  800055e:	421d      	tst	r5, r3
- 8000560:	d014      	beq.n	800058c <SysTick_Handler+0xb8>
+ 8000560:	d008      	beq.n	8000574 <SysTick_Handler+0xa0>
  8000562:	421c      	tst	r4, r3
  8000564:	d006      	beq.n	8000574 <SysTick_Handler+0xa0>
  8000566:	480c      	ldr	r0, [pc, #48]	@ (8000598 <SysTick_Handler+0xc4>)

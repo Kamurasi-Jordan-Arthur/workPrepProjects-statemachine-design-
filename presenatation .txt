@@ -24,7 +24,8 @@ Next I finalized with the pic to the pic micro-controller visited the MPlab IDE 
 
 In all these implementations I familiarized  with the debug interfaces (Disassembly view, watch-views, and ..... ) for the different IDEs that I that I used, used a mixture of the high level abstraction libraries eg (HAL,..) and direct register manipulation to arrive at my goal. incluing a bot of familiarization of build systems I highly used the help of the auto code generation tool qm tool for generation of the state machine's implementation as it promoted faster and less error prone and recommended usage of the framework with in 
 
-In all these projects the company is mostly interested in seeing how I am able to use the usage of QPC Event driven frame work for the construction  of state machine for the control of there client's proposed systems, i.e prototyping then perfection of prototypes. this should not be stated directly tho.
+In all these projects the company is mostly interested in seeing how I am able to use the usage of QPC Event driven frame work for the construction  of state machine for the control of there client's proposed systems, i.e prototyping then perfection of prototypes. This should not be stated directly tho.
+
 In the designing of all this before the the acquisition of the boards I got Had my self create a a PELICAN system that solves the case problems described at the end of the book.
 
 Issues that I faced during this endeavor,

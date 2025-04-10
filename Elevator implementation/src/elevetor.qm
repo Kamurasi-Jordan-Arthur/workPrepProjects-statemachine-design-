@@ -12,13 +12,12 @@
    <code>{
     mTIMEOUT_SIG = Q_USER_SIG,
     sTIMEOUT_SIG,
-    PAUSE_SIG,
+    hTIMEOUT_SIG,
     RESUME_SIG,
     SWITCH_SIG,
-    ENTER_REQUEST_SIG,
-    EXIT_REQUEST_SIG,
-    INSIDE_REQUEST_SIG,
     CLOSE_INTERRUPT_SIG,
+    REQUEST_SIG,
+    PRINT_SIG,
     MAX_SIG,
 };</code>
   </attribute>
@@ -28,11 +27,17 @@
     OPENNING_TIME= CLOSING_TIME,
     OPENED_WAIT_TIME = 4U * BSP_TICKS_PER_SEC,
     TRANSITION_INTERVAL = 3U * BSP_TICKS_PER_SEC,
+    SEND_INTERVAL = BSP_TICKS_PER_SEC /250,
 };</code>
   </attribute>
   <attribute name="requests" type="uint16_t" visibility="0x00" properties="0x00">
    <code>=0U;</code>
   </attribute>
+  <class name="printDataEvt" superclass="qpc::QEvt">
+   <documentation>this is the evt that contains the data to be sent over USB</documentation>
+   <attribute name="data[MESSAGE_SIZE]" type="char" visibility="0x02" properties="0x00"/>
+   <attribute name="len" type="uint8_t" visibility="0x02" properties="0x00"/>
+  </class>
  </package>
  <package name="AOs" stereotype="0x02">
   <class name="Elevator" superclass="qpc::QActive">
@@ -44,19 +49,34 @@
    </attribute>
    <attribute name="stationaryTEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <attribute name="motionTEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <attribute name="dir[11]" type="char " visibility="0x00" properties="0x00"/>
+   <attribute name="doorState[11]" type="char " visibility="0x00" properties="0x00"/>
+   <attribute name="iD" type="uint8_t" visibility="0x02" properties="0x00">
+    <code>0U;</code>
+   </attribute>
    <statechart properties="0x00">
     <initial target="../1">
+     <action>(void) par;
+printf(&quot;\t\t\tThe Elevator Operation System.\n&quot;
+       &quot;\tPress any of the digits (0-9) to send a request to the Operation System.\n&quot;
+       &quot;\tPress \&quot;I\&quot; to interrupt at a closing operation.\n&quot;
+       &quot;\tPress \&quot;C\&quot; to clear all requests.\n&quot;);
+</action>
      <initial_glyph conn="43,3,5,0,11,4">
       <action box="0,-2,10,2"/>
      </initial_glyph>
     </initial>
     <state name="operational">
+     <entry>printf(&quot;%-4s %-10s %-10s %-15s %-15s %-10s\n&quot;,
+       &quot;ID&quot;, &quot;Current&quot;, &quot;Next&quot;, &quot;Direction&quot;, &quot;Door State&quot;, &quot;REQUESTS&quot;);</entry>
      <initial target="../1">
       <initial_glyph conn="18,13,5,0,27,4">
        <action box="0,-2,10,2"/>
       </initial_glyph>
      </initial>
      <state name="Stationary">
+      <entry>strcpy(me-&gt;dir, &quot;STATIC&quot;);
+refreshFeed();</entry>
       <exit>QTimeEvt_disarm(&amp;me-&gt;stationaryTEvt);
 orangeOn();
 </exit>
@@ -67,7 +87,8 @@ orangeOn();
       </initial>
       <state name="Closing">
        <entry>QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, CLOSING_TIME, 0U); /*&lt;== one shot */
-</entry>
+strcpy(me-&gt;doorState, &quot;Clossing&quot;);
+refreshFeed();</entry>
        <tran trig="sTIMEOUT">
         <action>unregister_request(me-&gt;current);</action>
         <choice target="../../../4">
@@ -99,7 +120,9 @@ orangeOn();
       </state>
       <state name="Openning">
        <entry>orangeOff();
-QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENNING_TIME, 0U); /*&lt;== one shot */</entry>
+strcpy(me-&gt;doorState, &quot;Openning&quot;);
+QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENNING_TIME, 0U); /*&lt;== one shot */
+refreshFeed();</entry>
        <tran trig="sTIMEOUT" target="../../3">
         <tran_glyph conn="59,29,1,3,8">
          <action box="0,-2,10,2"/>
@@ -111,6 +134,8 @@ QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENNING_TIME, 0U); /*&lt;== one shot 
       </state>
       <state name="Opened">
        <entry>redOn();
+strcpy(me-&gt;doorState, &quot;Opened&quot;);
+refreshFeed();
 QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENED_WAIT_TIME, 0U); /*&lt;== one shot */</entry>
        <exit>redOff();</exit>
        <tran trig="sTIMEOUT" target="../../1">
@@ -125,7 +150,8 @@ QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENED_WAIT_TIME, 0U); /*&lt;== one sh
       </state>
       <state name="closed">
        <entry>orangeOn();
-</entry>
+strcpy(me-&gt;doorState, &quot;Closed&quot;);
+refreshFeed();</entry>
        <tran trig="RESUME" target="../../../2" cpref="../../../2/1">
         <tran_glyph conn="16,37,3,0,2,19,19,6">
          <action box="0,-2,10,2"/>
@@ -136,7 +162,8 @@ QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENED_WAIT_TIME, 0U); /*&lt;== one sh
        </state_glyph>
       </state>
       <state_glyph node="14,17,71,36">
-       <exit box="0,3,6,2"/>
+       <entry box="0,3,6,2"/>
+       <exit box="0,5,6,2"/>
       </state_glyph>
      </state>
      <state name="motion">
@@ -150,6 +177,9 @@ QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENED_WAIT_TIME, 0U); /*&lt;== one sh
       </history>
       <state name="upWards">
        <entry>greenOn();
+strcpy(me-&gt;dir, &quot;upWards&quot;);
+
+
 me-&gt;next = getLowestRequest(me-&gt;current);
 //........................................................
 
@@ -158,6 +188,7 @@ if(me-&gt;next &lt; me-&gt;current ){
     QACTIVE_POST_LIFO(AOElevator, &amp;sitchEvt);
 }else {
     QTimeEvt_armX(&amp;me-&gt;motionTEvt, TRANSITION_INTERVAL, TRANSITION_INTERVAL);
+    refreshFeed();
 }
 
 //........................................................
@@ -174,7 +205,8 @@ QTimeEvt_disarm(&amp;me-&gt;motionTEvt);</exit>
         </choice>
         <choice target="../../../3">
          <guard>me-&gt;current == (uint8_t) MAX_LEVELS</guard>
-         <choice_glyph conn="36,76,5,3,21">
+         <action>refreshFeed();</action>
+         <choice_glyph conn="36,76,5,3,25">
           <action box="1,0,14,2"/>
          </choice_glyph>
         </choice>
@@ -182,50 +214,37 @@ QTimeEvt_disarm(&amp;me-&gt;motionTEvt);</exit>
          <action box="-5,1,14,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="ENTER_REQUEST">
+       <tran trig="REQUEST">
         <choice>
          <guard brief="closerThanNext">me-&gt;next &gt; Q_EVT_CAST(requestEvt)-&gt;level &amp;&amp; Q_EVT_CAST(requestEvt)-&gt;level &gt; me-&gt;current
 </guard>
          <action>uint8_t assetion = already_requested( Q_EVT_CAST(requestEvt)-&gt;level);
 Q_ASSERT(assetion);
 me-&gt;next = Q_EVT_CAST(requestEvt)-&gt;level;
-</action>
-         <choice_glyph conn="39,96,5,-1,3,-5">
-          <action box="1,0,16,2"/>
+refreshFeed();</action>
+         <choice_glyph conn="42,88,5,-1,3,-5">
+          <action box="-2,2,16,2"/>
          </choice_glyph>
         </choice>
-        <tran_glyph conn="28,96,3,-1,11">
-         <action box="-6,-3,16,3"/>
-        </tran_glyph>
-       </tran>
-       <tran trig="EXIT_REQUEST">
-        <choice>
-         <guard brief="closerThanNext">me-&gt;next &gt;= Q_EVT_CAST(requestEvt)-&gt;level &amp;&amp; Q_EVT_CAST(requestEvt)-&gt;level &gt; me-&gt;current</guard>
-         <action>uint8_t assetion = already_requested( Q_EVT_CAST(requestEvt)-&gt;level);
-Q_ASSERT(assetion);
-
-me-&gt;next = Q_EVT_CAST(requestEvt)-&gt;level;
-</action>
-         <choice_glyph conn="39,101,5,-1,5,5">
-          <action box="1,0,10,2"/>
-         </choice_glyph>
-        </choice>
-        <tran_glyph conn="28,101,3,-1,11">
-         <action box="-4,0,17,3"/>
+        <tran_glyph conn="28,88,3,-1,14">
+         <action box="1,1,16,3"/>
         </tran_glyph>
        </tran>
        <tran trig="SWITCH" target="../../3">
-        <tran_glyph conn="52,88,1,3,5">
-         <action box="0,-2,10,2"/>
+        <tran_glyph conn="52,88,1,3,9">
+         <action box="1,-2,10,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="28,68,24,42">
+       <state_glyph node="28,68,24,33">
         <entry box="0,3,6,2"/>
         <exit box="0,5,6,2"/>
        </state_glyph>
       </state>
       <state name="downWards">
        <entry>blueOn();
+strcpy(me-&gt;dir, &quot;downWards&quot;);
+refreshFeed();
+
 me-&gt;next = getHighestRequest(me-&gt;current);
 //........................................................
 
@@ -234,6 +253,7 @@ if(me-&gt;next &gt; me-&gt;current ){
     QACTIVE_POST_LIFO(AOElevator, &amp;sitchEvt);
 }else {
     QTimeEvt_armX(&amp;me-&gt;motionTEvt, TRANSITION_INTERVAL, TRANSITION_INTERVAL);
+    refreshFeed();
 }
 //........................................................
 
@@ -241,66 +261,54 @@ if(me-&gt;next &gt; me-&gt;current ){
        <exit>blueOff();
 QTimeEvt_disarm(&amp;me-&gt;motionTEvt);
 </exit>
-       <tran trig="ENTER_REQUEST">
+       <tran trig="REQUEST">
         <choice>
          <guard brief="closerThanNext">me-&gt;next &lt; Q_EVT_CAST(requestEvt)-&gt;level &amp;&amp; Q_EVT_CAST(requestEvt)-&gt;level &lt; me-&gt;current</guard>
          <action>Q_ASSERT(already_requested( Q_EVT_CAST(requestEvt)-&gt;level));
 me-&gt;next = Q_EVT_CAST(requestEvt)-&gt;level;
-</action>
-         <choice_glyph conn="69,104,5,-1,3,-5">
+refreshFeed();</action>
+         <choice_glyph conn="75,91,5,-1,3,-5">
           <action box="1,0,16,2"/>
          </choice_glyph>
         </choice>
-        <tran_glyph conn="57,104,3,-1,12">
-         <action box="-1,-4,16,3"/>
-        </tran_glyph>
-       </tran>
-       <tran trig="EXIT_REQUEST">
-        <choice>
-         <guard brief="closerThanNext">me-&gt;next &lt; Q_EVT_CAST(requestEvt)-&gt;level &amp;&amp; Q_EVT_CAST(requestEvt)-&gt;level &lt; me-&gt;current
-</guard>
-         <action>Q_ASSERT(already_requested( Q_EVT_CAST(requestEvt)-&gt;level));
-me-&gt;next = Q_EVT_CAST(requestEvt)-&gt;level;
-</action>
-         <choice_glyph conn="71,92,5,-1,5,5">
-          <action box="6,2,10,2"/>
-         </choice_glyph>
-        </choice>
-        <tran_glyph conn="57,92,3,-1,14">
-         <action box="1,2,17,3"/>
+        <tran_glyph conn="61,91,3,-1,14">
+         <action box="3,-2,16,3"/>
         </tran_glyph>
        </tran>
        <tran trig="mTIMEOUT">
         <action>me-&gt;current--;</action>
         <choice target="../../../../1/2">
          <guard>me-&gt;current == me-&gt;next</guard>
-         <choice_glyph conn="64,80,4,1,-41,-5">
+         <choice_glyph conn="68,80,4,1,-41,-9">
           <action box="-4,-25,21,4"/>
          </choice_glyph>
         </choice>
         <choice target="../../../2">
          <guard>me-&gt;current == (uint8_t) 1U</guard>
-         <choice_glyph conn="64,80,5,1,-12">
-          <action box="-15,2,20,6"/>
+         <action>refreshFeed();</action>
+         <choice_glyph conn="68,80,5,1,-16">
+          <action box="-16,2,24,2"/>
          </choice_glyph>
         </choice>
-        <tran_glyph conn="81,80,1,-1,-17">
+        <tran_glyph conn="85,80,1,-1,-17">
          <action box="-5,1,14,2"/>
         </tran_glyph>
        </tran>
        <tran trig="SWITCH" target="../../2">
-        <tran_glyph conn="57,94,3,1,-5">
-         <action box="0,-2,10,2"/>
+        <tran_glyph conn="61,94,3,1,-9">
+         <action box="-8,-2,10,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="57,68,24,42">
+       <state_glyph node="61,68,24,33">
         <entry box="0,3,6,2"/>
         <exit box="0,5,6,2"/>
        </state_glyph>
       </state>
-      <state_glyph node="12,63,77,52"/>
+      <state_glyph node="12,63,77,42"/>
      </state>
-     <state_glyph node="6,7,89,115"/>
+     <state_glyph node="6,7,89,101">
+      <entry box="0,3,6,2"/>
+     </state_glyph>
     </state>
     <state_diagram size="132,144"/>
    </statechart>
@@ -315,39 +323,57 @@ QTimeEvt_ctorX(&amp;me-&gt;stationaryTEvt, &amp;me-&gt;super, sTIMEOUT_SIG, 0U);
   <attribute name="AOElevator" type="QActive *" visibility="0x00" properties="0x00">
    <code>= &amp;Elevator_inst.super;</code>
   </attribute>
-  <class name="Requestor" superclass="qpc::QActive">
+  <class name="HostHandler" superclass="qpc::QActive">
+   <attribute name="defferQ" type="QEQueue" visibility="0x02" properties="0x00"/>
+   <attribute name="deferedQSto[10]" type="QEvt const *" visibility="0x02" properties="0x00"/>
+   <attribute name="timer" type="QTimeEvt" visibility="0x00" properties="0x00"/>
    <statechart properties="0x00">
-    <initial target="../1">
-     <initial_glyph conn="27,4,5,0,19,4">
+    <initial target="../2">
+     <initial_glyph conn="27,4,5,0,-7,12">
       <action box="0,-2,10,2"/>
      </initial_glyph>
     </initial>
-    <state name="requesting_state">
-     <tran trig="ENTER_REQUEST">
-      <action>request(ENTER_REQUEST_SIG);
-</action>
-      <tran_glyph conn="15,17,3,-1,18">
-       <action box="0,1,19,5"/>
-      </tran_glyph>
-     </tran>
+    <state name="transmiting_state">
+     <entry>QTimeEvt_armX(&amp;me-&gt;timer, SEND_INTERVAL, SEND_INTERVAL);
+</entry>
+     <exit>QTimeEvt_disarm(&amp;me-&gt;timer);
+</exit>
      <tran trig="EXIT_REQUEST">
       <action>request(EXIT_REQUEST_SIG);</action>
-      <tran_glyph conn="59,32,1,-1,-16">
+      <tran_glyph conn="63,38,1,-1,-16">
        <action box="-18,-5,19,5"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="15,8,44,30"/>
+     <state_glyph node="42,14,21,30">
+      <entry box="0,3,6,2"/>
+      <exit box="0,5,6,2"/>
+     </state_glyph>
+    </state>
+    <state name="idle">
+     <entry>// recall the oldest deferred request...
+QActive_recall(&amp;me-&gt;super, &amp;me-&gt;defferQ);
+</entry>
+     <tran trig="PRINT" target="../../1">
+      <tran_glyph conn="12,24,3,3,30">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="12,16,17,25">
+      <entry box="0,3,6,2"/>
+     </state_glyph>
     </state>
     <state_diagram size="80,50"/>
    </statechart>
   </class>
-  <operation name="Requestor_Ctor" type="void" visibility="0x00" properties="0x00">
-   <code>Requestor * me = &amp;Requestor_inst;
+  <operation name="HostHandler_Ctor" type="void" visibility="0x00" properties="0x00">
+   <code>HostHandler * me = &amp;HostHandler_inst;
 QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;Requestor_initial));
+QEQueue_init(&amp;me-&gt;defferQ, me-&gt;deferedQSto, Q_DIM(me-&gt;deferedQSto));
+QTimeEvt_ctorX(&amp;me-&gt;timer,   &amp;me-&gt;super, hTIMEOUT_SIG,   0U);
 </code>
   </operation>
-  <attribute name="Requestor_inst" type="Requestor" visibility="0x02" properties="0x00"/>
-  <attribute name="AORequestor" type="QActive *" visibility="0x00" properties="0x00">
+  <attribute name="HostHandler_inst" type="HostHandler" visibility="0x02" properties="0x00"/>
+  <attribute name="AOHostHandler" type="QActive *" visibility="0x00" properties="0x00">
    <code>= &amp;Requestor_inst.super;</code>
   </attribute>
  </package>
@@ -356,6 +382,8 @@ QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;Requestor_initial));
    <text>#include &quot;elevator.h&quot;
 #include &quot;qpc.h&quot;
 #include &quot;bsp.h&quot;
+#include &quot;string.h&quot;
+#include &lt;stdio.h&gt;
 Q_DEFINE_THIS_FILE
 
 $define${AOs::Elevator}
@@ -366,14 +394,27 @@ $define${AOs::Elevator_Ctor}
 
 $define${AOs::AOElevator}
 
-$define${AOs::Requestor}
+//$define${AOs::Requestor}
 
-$define${AOs::Requestor_inst}
+//$define${AOs::Requestor_inst}
 
-$define${AOs::Requestor_Ctor}
+//$define${AOs::Requestor_Ctor}
 
-$define${AOs::AORequestor}
+//$define${AOs::AORequestor}
 
+void refreshFeed(void){
+
+    printf(&quot;%-4s %-10s %-10s %-15s %-15s %-10s\n&quot;,
+           &quot;ID&quot;, &quot;Current&quot;, &quot;Next&quot;, &quot;Direction&quot;, &quot;Door State&quot;, &quot;REQUESTS&quot;);
+
+    printf(&quot;%-4d %-10d %-10d %-15s %-15s 0x%08X\n&quot;,
+           Elevator_inst.iD++,
+           Elevator_inst.current,
+           Elevator_inst.next,
+           Elevator_inst.dir,
+           Elevator_inst.doorState,
+           requests);
+}
 
 
 
@@ -386,10 +427,17 @@ $define${shared::requests}
    <text>#ifndef elevator_h_
 #define elevator_h_
 #include &quot;qpc.h&quot;
+
 $declare${shared::MAX_LEVELS}
+
 #ifndef BSP_TICKS_PER_SEC
 #define BSP_TICKS_PER_SEC 100U // Define a constant value for BSP_TICKS_PER_SEC
 #endif
+
+void refreshFeed(void);
+
+#define MESSAGE_SIZE (uint8_t)100U
+
 
 $declare${shared}
 
@@ -398,9 +446,9 @@ $declare${AOs::Elevator}
 $declare${AOs::AOElevator}
 $declare${AOs::Elevator_Ctor}
 
-$declare${AOs::Requestor}
-$declare${AOs::Requestor_Ctor}
-$declare${AOs::AORequestor}
+$declare${AOs::HostHandler}
+$declare${AOs::HostHandler_Ctor}
+$declare${AOs::AOHostHandler}
 
 
 

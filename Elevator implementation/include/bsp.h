@@ -40,7 +40,7 @@ void BSP_start(void);
 //......................................................................
 
 uint8_t already_requested(uint16_t level);
-uint8_t registry_Empyt();
+uint8_t registry_Empyt(void);
 
 uint16_t getHighestRequest(uint16_t base);
 uint16_t getLowestRequest(uint16_t base);
@@ -49,14 +49,14 @@ void register_request(uint16_t level);
 void unregister_request(uint16_t level);
 //.......................................................................
 
-void orangeOn();
-void orangeOff();
-void greenOn();
-void greenOff();
-void redOn();
-void redOff();
-void blueOn();
-void blueOff();
+void orangeOn(void);
+void orangeOff(void);
+void greenOn(void);
+void greenOff(void);
+void redOn(void);
+void redOff(void);
+void blueOn(void);
+void blueOff(void);
 
 //.........................................................................
 

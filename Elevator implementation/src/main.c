@@ -34,11 +34,14 @@
 #include "qpc.h"                 // QP/C real-time embedded framework
 #include "bsp.h"                 // Board Support Package
 #include "elevator.h"
+#include <stdio.h>              // standard I/O for printf()
 
 //............................................................................
 int main() {
     QF_init();       // initialize the framework and the underlying RT kernel
     BSP_init();      // initialize the BSP
     BSP_start();     // start the AOs/Threads
+    printf("Heloo World!\n");
     return QF_run(); // run the QF application
 }
+

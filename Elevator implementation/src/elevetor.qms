@@ -10,9 +10,9 @@
  </group>
  <group name="windows">
   <item id=".::elevator.c">0,0,596,300</item>
-  <item id="AOs::Requestor::SM">30,0,640,480</item>
-  <item id="AOs::Elevator::SM">0,0,622,385,*</item>
-  <item id="../include::elevator.h">61,111,596,300</item>
+  <item id="AOs::Requestor::SM">230,0,640,480</item>
+  <item id="AOs::Elevator::SM">0,0,1278,614,*</item>
+  <item id="../include::elevator.h">274,120,596,300</item>
  </group>
  <group name="search">
   <item name="options">2032128</item>

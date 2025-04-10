@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "qpc.h": "c",
+        "stm32f4xx_exti.h": "c",
+        "stm32f4xx_usart.h": "c",
+        "stm32f4xx_hal_usart.h": "c",
+        "usb_device.h": "c",
+        "usbd_core.h": "c",
+        "usbd_cdc.h": "c",
+        "usbd_cdc_if.h": "c",
+        "stm32f4xx_hal.h": "c",
+        "usbd_def.h": "c",
+        "elevator.h": "c"
+    }
+}

@@ -38,14 +38,21 @@
 #ifndef elevator_h_
 #define elevator_h_
 #include "qpc.h"
+
 //$declare${shared::MAX_LEVELS} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 //${shared::MAX_LEVELS} ......................................................
 #define MAX_LEVELS ((uint8_t)9U)
 //$enddecl${shared::MAX_LEVELS} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 #ifndef BSP_TICKS_PER_SEC
 #define BSP_TICKS_PER_SEC 100U // Define a constant value for BSP_TICKS_PER_SEC
 #endif
+
+void refreshFeed(void);
+
+#define MESSAGE_SIZE (uint8_t)100U
+
 
 //$declare${shared} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
@@ -65,13 +72,12 @@ typedef struct {
 enum app_sigs {
     mTIMEOUT_SIG = Q_USER_SIG,
     sTIMEOUT_SIG,
-    PAUSE_SIG,
+    hTIMEOUT_SIG,
     RESUME_SIG,
     SWITCH_SIG,
-    ENTER_REQUEST_SIG,
-    EXIT_REQUEST_SIG,
-    INSIDE_REQUEST_SIG,
     CLOSE_INTERRUPT_SIG,
+    REQUEST_SIG,
+    PRINT_SIG,
     MAX_SIG,
 };
 
@@ -81,10 +87,21 @@ enum timeMacros {
     OPENNING_TIME= CLOSING_TIME,
     OPENED_WAIT_TIME = 4U * BSP_TICKS_PER_SEC,
     TRANSITION_INTERVAL = 3U * BSP_TICKS_PER_SEC,
+    SEND_INTERVAL = BSP_TICKS_PER_SEC /250,
 };
 
 //${shared::requests} ........................................................
 extern uint16_t requests;
+
+//${shared::printDataEvt} ....................................................
+typedef struct {
+// protected:
+    QEvt super;
+
+// private:
+    char data[MESSAGE_SIZE];
+    uint8_t len;
+} printDataEvt;
 //$enddecl${shared} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
@@ -100,6 +117,13 @@ typedef struct {
     uint8_t next;
     QTimeEvt stationaryTEvt;
     QTimeEvt motionTEvt;
+
+// public:
+    char  dir[11];
+    char  doorState[11];
+
+// private:
+    uint8_t iD;
 
 // private state histories
     QStateHandler hist_motion;
@@ -128,28 +152,36 @@ extern QActive * AOElevator;
 void Elevator_Ctor(void);
 //$enddecl${AOs::Elevator_Ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-//$declare${AOs::Requestor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//$declare${AOs::HostHandler} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-//${AOs::Requestor} ..........................................................
+//${AOs::HostHandler} ........................................................
 typedef struct {
 // protected:
     QActive super;
-} Requestor;
+
+// private:
+    QEQueue defferQ;
+    QEvt const * deferedQSto[10];
+
+// public:
+    QTimeEvt timer;
+} HostHandler;
 
 // protected:
-QState Requestor_initial(Requestor * const me, void const * const par);
-QState Requestor_requesting_state(Requestor * const me, QEvt const * const e);
-//$enddecl${AOs::Requestor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//$declare${AOs::Requestor_Ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+QState HostHandler_initial(HostHandler * const me, void const * const par);
+QState HostHandler_transmiting_state(HostHandler * const me, QEvt const * const e);
+QState HostHandler_idle(HostHandler * const me, QEvt const * const e);
+//$enddecl${AOs::HostHandler} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//$declare${AOs::HostHandler_Ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-//${AOs::Requestor_Ctor} .....................................................
-void Requestor_Ctor(void);
-//$enddecl${AOs::Requestor_Ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//$declare${AOs::AORequestor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//${AOs::HostHandler_Ctor} ...................................................
+void HostHandler_Ctor(void);
+//$enddecl${AOs::HostHandler_Ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//$declare${AOs::AOHostHandler} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-//${AOs::AORequestor} ........................................................
-extern QActive * AORequestor;
-//$enddecl${AOs::AORequestor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//${AOs::AOHostHandler} ......................................................
+extern QActive * AOHostHandler;
+//$enddecl${AOs::AOHostHandler} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
