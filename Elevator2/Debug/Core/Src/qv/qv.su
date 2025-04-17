@@ -1,0 +1,9 @@
+/home/jordan/Embedded projects/Elevator2/Core/Inc/QPC_inc/qp.h:433:20:QPSet_notEmpty	16	static
+/home/jordan/Embedded projects/Elevator2/Core/Inc/QPC_inc/qp.h:471:20:QPSet_remove	16	static
+/home/jordan/Embedded projects/Elevator2/Core/Inc/QPC_inc/qp.h:487:28:QPSet_findMax	16	static
+../Core/Src/qv/qv.c:53:6:QV_schedDisable	16	static
+../Core/Src/qv/qv.c:73:6:QV_schedEnable	8	static
+../Core/Src/qv/qv.c:92:6:QF_init	8	static
+../Core/Src/qv/qv.c:106:6:QF_stop	8	static
+../Core/Src/qv/qv.c:113:7:QF_run	24	static,ignoring_inline_asm
+../Core/Src/qv/qv.c:214:6:QActive_start	24	static

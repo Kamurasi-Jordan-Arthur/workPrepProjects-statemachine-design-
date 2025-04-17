@@ -258,8 +258,55 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
+#include "elevator.h"
+#include "qpc.h"                 // QP/C real-time embedded framework
+#include "bsp.h"
+
+
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
+if (*Len > 1U) {
+//  printf("");
+
+//  while (CDC_Transmit_FS((uint8_t*)"**Invalid input**", 17U) != USBD_OK) {
+//      HAL_Delay(4);
+//  }
+//  while (CDC_Transmit_FS((uint8_t*)Buf, *Len) != USBD_OK) {
+//      HAL_Delay(4);
+//  }
+//  while (CDC_Transmit_FS((uint8_t*)Buf, *Len) != USBD_OK) {
+//      HAL_Delay(4);
+//  }
+
+} else if ((char)Buf[0] >= '0' && (char)Buf[0] <= '9') {
+	requestEvt * RequestEve = Q_NEW(requestEvt ,REQUEST_SIG);
+	RequestEve->level = (uint8_t)((char)Buf[0] - '0');
+
+	if (!already_requested(RequestEve->level)){
+		register_request(RequestEve->level);
+		QACTIVE_POST(AOElevator, (QEvtPtr)RequestEve, (void*)0U);
+
+	}
+} else if ((char)Buf[0] == 'I' || (char)Buf[0] == 'i') {
+	static QEvt const intPress = QEVT_INITIALIZER(CLOSE_INTERRUPT_SIG);
+	QACTIVE_POST(AOElevator, &intPress, (void*)0);
+
+} else if ((char)Buf[0] == 'C' || (char)Buf[0] == 'c') {
+	requests = 0U;
+	if (QHsm_state((QHsm *)&AOElevator) != (QStateHandler)Elevator_closed) {
+	    // The current state is 'Elevator_closed'
+	    // Perform relevant actions here
+		register_request((uint16_t)(((Elevator*)AOElevator)->next));
+	}
+//	register_request(((Elevator)AOElevator)->next);
+
+}
+//else{
+//
+//	  while (CDC_Transmit_FS((uint8_t*)Buf, *Len) != USBD_OK) {
+//	      HAL_Delay(4);
+//	  }
+//}
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);

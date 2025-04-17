@@ -1,0 +1,12 @@
+../Core/Src/appfiles/src/elevator.c:85:8:Elevator_operational	1
+../Core/Src/appfiles/src/elevator.c:58:8:Elevator_initial	2
+../Core/Src/appfiles/src/elevator.c:102:8:Elevator_Stationary	3
+../Core/Src/appfiles/src/elevator.c:232:8:Elevator_closed	3
+../Core/Src/appfiles/src/elevator.c:256:8:Elevator_motion	3
+../Core/Src/appfiles/src/elevator.c:455:6:Elevator_Ctor	1
+../Core/Src/appfiles/src/elevator.c:477:6:refreshFeed	2
+../Core/Src/appfiles/src/elevator.c:127:8:Elevator_Closing	5
+../Core/Src/appfiles/src/elevator.c:171:8:Elevator_Openning	3
+../Core/Src/appfiles/src/elevator.c:199:8:Elevator_Opened	4
+../Core/Src/appfiles/src/elevator.c:282:8:Elevator_upWards	11
+../Core/Src/appfiles/src/elevator.c:365:8:Elevator_downWards	11

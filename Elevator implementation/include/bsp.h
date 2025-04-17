@@ -58,6 +58,9 @@ void redOff(void);
 void blueOn(void);
 void blueOff(void);
 
+
+void SystemClock_Config(void);
+void MX_GPIO_Init(void);
 //.........................................................................
 
 void request(uint16_t SIG);

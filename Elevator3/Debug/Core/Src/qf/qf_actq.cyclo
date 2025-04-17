@@ -1,0 +1,11 @@
+/home/jordan/Embedded projects/Elevator3/Core/Inc/QPC_inc/qp.h:455:20:QPSet_insert	1
+/home/jordan/Embedded projects/Elevator3/Core/Inc/QPC_inc/qp_pkg.h:61:20:QEvt_refCtr_inc_	1
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:51:6:QActive_post_	5
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:132:6:QActive_postLIFO_	5
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:210:14:QActive_get_	3
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:273:13:QActive_postFIFO_	4
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:337:15:QF_getQueueMin	2
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:351:6:QTicker_ctor	1
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:372:6:QTicker_init_	1
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:391:6:QTicker_dispatch_	2
+/home/jordan/Embedded projects/Elevator2/Core/Src/qf/qf_actq.c:419:6:QTicker_trig_	4

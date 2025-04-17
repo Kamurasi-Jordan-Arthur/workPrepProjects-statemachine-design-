@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="7.0.1" links="0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.state-machine.com/qm/qm7.xsd">
+ <framework name="qpc"/>
+ <package name="shared" stereotype="0x01">
+  <class name="requestEvt" superclass="qpc::QEvt">
+   <attribute name="level" type="uint8_t" visibility="0x00" properties="0x00"/>
+  </class>
+  <attribute name="MAX_LEVELS" type="uint8_t" visibility="0x03" properties="0x00">
+   <code>((uint8_t)9U)</code>
+  </attribute>
+  <attribute name="app_sigs" type="enum" visibility="0x04" properties="0x00">
+   <code>{
+    mTIMEOUT_SIG = Q_USER_SIG,
+    sTIMEOUT_SIG,
+    hTIMEOUT_SIG,
+    RESUME_SIG,
+    SWITCH_SIG,
+    CLOSE_INTERRUPT_SIG,
+    REQUEST_SIG,
+    PRINT_SIG,
+    MAX_SIG,
+};</code>
+  </attribute>
+  <attribute name="timeMacros" type="enum" visibility="0x04" properties="0x00">
+   <code>{
+    CLOSING_TIME = 2U * BSP_TICKS_PER_SEC,
+    OPENNING_TIME= CLOSING_TIME,
+    OPENED_WAIT_TIME = 4U * BSP_TICKS_PER_SEC,
+    TRANSITION_INTERVAL = 3U * BSP_TICKS_PER_SEC,
+    SEND_INTERVAL = BSP_TICKS_PER_SEC /250,
+};</code>
+  </attribute>
+  <attribute name="requests" type="volatile uint16_t" visibility="0x00" properties="0x00">
+   <code>=0U;</code>
+  </attribute>
+  <class name="printDataEvt" superclass="qpc::QEvt">
+   <documentation>this is the evt that contains the data to be sent over USB</documentation>
+   <attribute name="data[MESSAGE_SIZE]" type="char" visibility="0x02" properties="0x00"/>
+   <attribute name="len" type="uint8_t" visibility="0x02" properties="0x00"/>
+  </class>
+ </package>
+ <package name="AOs" stereotype="0x02">
+  <class name="Elevator" superclass="qpc::QActive">
+   <attribute name="current" type="uint8_t" visibility="0x02" properties="0x00">
+    <code>= 0XFFU;</code>
+   </attribute>
+   <attribute name="next" type="uint8_t" visibility="0x02" properties="0x00">
+    <code>=0XFFU;</code>
+   </attribute>
+   <attribute name="stationaryTEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <attribute name="motionTEvt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <attribute name="dir[11]" type="char " visibility="0x00" properties="0x00"/>
+   <attribute name="doorState[11]" type="char " visibility="0x00" properties="0x00"/>
+   <attribute name="iD" type="uint8_t" visibility="0x02" properties="0x00">
+    <code>0U;</code>
+   </attribute>
+   <statechart properties="0x00">
+    <initial target="../1">
+     <action>(void) par;
+
+ const char* msg =
+     &quot;\t\t\tThe Elevator Operation System.\n&quot;
+     &quot;\tPress any of the digits (0-9) to send a request to the Operation System.\n&quot;
+     &quot;\tPress \&quot;I\&quot; to interrupt at a closing operation.\n&quot;
+     &quot;\tPress \&quot;C\&quot; to clear all requests.\n&quot;;
+
+ while (CDC_Transmit_FS((uint8_t*)msg, strlen(msg)) != USBD_OK) {
+     HAL_Delay(4);
+ }
+//'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+strcpy(me-&gt;doorState, &quot;Closed&quot;);
+strcpy(me-&gt;dir, &quot;STATIC&quot;);
+
+//'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+</action>
+     <initial_glyph conn="43,3,5,0,11,4">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="operational">
+     <initial target="../2">
+      <initial_glyph conn="18,13,5,0,27,4">
+       <action box="0,-2,10,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="PRINT">
+      <action>     const char* msg =
+         &quot;\n\n\n\t\t\tThe Elevator Operation System.\n&quot;
+         &quot;\tPress any of the digits (0-9) to send an Enter or Exit request to the Operation System.\n&quot;
+         &quot;\tPress \&quot;I\&quot; to interrupt at a closing operation.\n&quot;
+         &quot;\tPress \&quot;C\&quot; to clear all requests.\n&quot;;
+
+     while (CDC_Transmit_FS((uint8_t*)msg, strlen(msg)) != USBD_OK) {
+         HAL_Delay(4);
+     }
+
+
+     char buffer[128];
+     snprintf(buffer, sizeof(buffer), &quot;%-4s %-15s %-15s %-15s %-15s %-10s\n&quot;,
+              &quot;ID&quot;, &quot;Current-Level&quot;, &quot;Next-Level&quot;, &quot;Direction&quot;, &quot;Door State&quot;, &quot;REQUESTS&quot;);
+
+
+     while (CDC_Transmit_FS((uint8_t*)buffer, strlen(buffer)) != USBD_OK) {
+         HAL_Delay(4);
+     }
+
+     refreshFeed();</action>
+      <tran_glyph conn="6,34,3,-1,4,10">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="Stationary">
+      <exit>QTimeEvt_disarm(&amp;me-&gt;stationaryTEvt);
+orangeOn();
+</exit>
+      <initial target="../4">
+       <initial_glyph conn="35,22,5,0,-14,3">
+        <action box="0,-2,10,2"/>
+       </initial_glyph>
+      </initial>
+      <state name="Closing">
+       <entry>QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, CLOSING_TIME, 0U); /*&lt;== one shot */
+</entry>
+       <tran trig="sTIMEOUT">
+        <action>strcpy(me-&gt;doorState, &quot;Closed&quot;);
+refreshFeed();</action>
+        <choice target="../../../4">
+         <guard>registry_Empyt()</guard>
+         <choice_glyph conn="39,51,5,2,-17,-4">
+          <action box="-15,-3,13,3"/>
+         </choice_glyph>
+        </choice>
+        <choice target="../../../../3" cpref="../../../../3/1">
+         <guard>else</guard>
+         <action>strcpy(me-&gt;doorState, &quot;Closed&quot;);
+refreshFeed();</action>
+         <choice_glyph conn="39,51,4,0,7,-2,4">
+          <action box="1,0,10,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="39,46,2,-1,5">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="CLOSE_INTERRUPT" target="../../2">
+        <action>QTimeEvt_disarm(&amp;me-&gt;stationaryTEvt);
+register_request(me-&gt;current);
+strcpy(me-&gt;doorState, &quot;Openning&quot;);
+refreshFeed();</action>
+        <tran_glyph conn="34,32,0,3,-4,11">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="28,32,15,14">
+        <entry box="0,3,6,2"/>
+       </state_glyph>
+      </state>
+      <state name="Openning">
+       <entry>orangeOff();
+QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENNING_TIME, 0U); /*&lt;== one shot */
+</entry>
+       <tran trig="sTIMEOUT" target="../../3">
+        <action>strcpy(me-&gt;doorState, &quot;Opened&quot;);
+refreshFeed();</action>
+        <tran_glyph conn="59,29,1,3,8">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="45,25,14,16">
+        <entry box="0,3,6,2"/>
+       </state_glyph>
+      </state>
+      <state name="Opened">
+       <entry>redOn();
+
+QTimeEvt_armX(&amp;me-&gt;stationaryTEvt, OPENED_WAIT_TIME, 0U); /*&lt;== one shot */</entry>
+       <exit>redOff();</exit>
+       <tran trig="sTIMEOUT" target="../../1">
+        <action>unregister_request(me-&gt;current);
+strcpy(me-&gt;doorState, &quot;Clossing&quot;);
+refreshFeed();</action>
+        <tran_glyph conn="67,44,3,1,-24">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="67,23,14,27">
+        <entry box="0,3,6,2"/>
+        <exit box="0,5,6,2"/>
+       </state_glyph>
+      </state>
+      <state name="closed">
+       <entry>orangeOn();
+</entry>
+       <tran trig="RESUME">
+        <choice target="../../../2">
+         <guard>me-&gt;current == getLowestRequest(me-&gt;current)</guard>
+         <action>strcpy(me-&gt;doorState, &quot;Openning&quot;);
+refreshFeed();</action>
+         <choice_glyph conn="21,40,4,3,-3,24">
+          <action box="1,0,10,2"/>
+         </choice_glyph>
+        </choice>
+        <choice target="../../../../3" cpref="../../../../3/1">
+         <guard>else</guard>
+         <choice_glyph conn="21,40,4,0,15,16,7">
+          <action box="1,0,10,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="16,36,3,-1,2,4,3">
+         <action box="-2,-3,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="16,25,10,22">
+        <entry box="0,3,6,2"/>
+       </state_glyph>
+      </state>
+      <state_glyph node="14,17,71,36">
+       <exit box="0,3,6,2"/>
+      </state_glyph>
+     </state>
+     <state name="motion">
+      <initial target="../2">
+       <initial_glyph conn="22,72,4,3,8,6">
+        <action box="0,-2,10,2"/>
+       </initial_glyph>
+      </initial>
+      <history type="shallow" target="../2">
+       <history_glyph color="2" conn="37,63,0,0,5"/>
+      </history>
+      <state name="upWards">
+       <entry>greenOn();
+strcpy(me-&gt;dir, &quot;upWards&quot;);
+
+
+me-&gt;next = getLowestRequest(me-&gt;current);
+//........................................................
+
+if(me-&gt;next &lt; me-&gt;current ){
+    static const QEvt sitchEvt = QEVT_INITIALIZER(SWITCH_SIG);
+    QACTIVE_POST_LIFO(AOElevator, &amp;sitchEvt);
+}else {
+    QTimeEvt_armX(&amp;me-&gt;motionTEvt, TRANSITION_INTERVAL, TRANSITION_INTERVAL);
+    refreshFeed();
+}
+
+//........................................................
+</entry>
+       <exit>greenOff();
+QTimeEvt_disarm(&amp;me-&gt;motionTEvt);</exit>
+       <tran trig="mTIMEOUT">
+        <action>me-&gt;current++;</action>
+        <choice target="../../../../2/2">
+         <guard>me-&gt;current == me-&gt;next</guard>
+         <action>strcpy(me-&gt;dir, &quot;STATIC&quot;);
+refreshFeed();
+strcpy(me-&gt;doorState, &quot;Openning&quot;);
+refreshFeed();
+</action>
+         <choice_glyph conn="36,76,4,2,-3,13,-32">
+          <action box="16,-17,21,4"/>
+         </choice_glyph>
+        </choice>
+        <choice>
+         <guard>else</guard>
+         <action>refreshFeed();</action>
+         <choice_glyph conn="36,76,5,-1,10,3">
+          <action box="1,0,14,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="28,84,3,-1,8,-8">
+         <action box="-5,1,14,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="REQUEST">
+        <choice>
+         <guard brief="closerThanNext">me-&gt;next &gt; Q_EVT_CAST(requestEvt)-&gt;level &amp;&amp; Q_EVT_CAST(requestEvt)-&gt;level &gt; me-&gt;current
+</guard>
+         <action>uint8_t assetion = already_requested( Q_EVT_CAST(requestEvt)-&gt;level);
+Q_ASSERT(assetion);
+me-&gt;next = Q_EVT_CAST(requestEvt)-&gt;level;
+refreshFeed();</action>
+         <choice_glyph conn="42,88,5,-1,3,-5">
+          <action box="-2,2,16,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="28,88,3,-1,14">
+         <action box="1,1,16,3"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="SWITCH" target="../../3">
+        <tran_glyph conn="52,88,1,3,9">
+         <action box="1,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="28,68,24,33">
+        <entry box="0,3,6,2"/>
+        <exit box="0,5,6,2"/>
+       </state_glyph>
+      </state>
+      <state name="downWards">
+       <entry>blueOn();
+strcpy(me-&gt;dir, &quot;downWards&quot;);
+
+me-&gt;next = getHighestRequest(me-&gt;current);
+//........................................................
+
+if(me-&gt;next &gt; me-&gt;current ){
+    static const QEvt sitchEvt = QEVT_INITIALIZER(SWITCH_SIG);
+    QACTIVE_POST_LIFO(AOElevator, &amp;sitchEvt);
+}else {
+    QTimeEvt_armX(&amp;me-&gt;motionTEvt, TRANSITION_INTERVAL, TRANSITION_INTERVAL);
+    refreshFeed();
+}
+//........................................................
+
+</entry>
+       <exit>blueOff();
+QTimeEvt_disarm(&amp;me-&gt;motionTEvt);
+</exit>
+       <tran trig="REQUEST">
+        <choice>
+         <guard brief="closerThanNext">me-&gt;next &lt; Q_EVT_CAST(requestEvt)-&gt;level &amp;&amp; Q_EVT_CAST(requestEvt)-&gt;level &lt; me-&gt;current</guard>
+         <action>Q_ASSERT(already_requested( Q_EVT_CAST(requestEvt)-&gt;level));
+me-&gt;next = Q_EVT_CAST(requestEvt)-&gt;level;
+refreshFeed();</action>
+         <choice_glyph conn="75,91,5,-1,3,-5">
+          <action box="1,0,16,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="61,91,3,-1,14">
+         <action box="3,-2,16,3"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="mTIMEOUT">
+        <action>me-&gt;current--;</action>
+        <choice target="../../../../2/2">
+         <guard>me-&gt;current == me-&gt;next</guard>
+         <action>strcpy(me-&gt;dir, &quot;STATIC&quot;);
+refreshFeed();
+strcpy(me-&gt;doorState, &quot;Openning&quot;);
+refreshFeed();
+</action>
+         <choice_glyph conn="68,80,4,1,-41,-9">
+          <action box="-4,-25,21,4"/>
+         </choice_glyph>
+        </choice>
+        <choice>
+         <guard>else</guard>
+         <action>refreshFeed();</action>
+         <choice_glyph conn="68,80,5,-1,-5,-3">
+          <action box="-16,2,24,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="85,80,1,-1,-17">
+         <action box="-5,1,14,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="SWITCH" target="../../2">
+        <tran_glyph conn="61,94,3,1,-9">
+         <action box="-8,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="61,68,24,33">
+        <entry box="0,3,6,2"/>
+        <exit box="0,5,6,2"/>
+       </state_glyph>
+      </state>
+      <state_glyph node="12,63,77,42"/>
+     </state>
+     <state_glyph node="6,7,89,101"/>
+    </state>
+    <state_diagram size="132,144"/>
+   </statechart>
+  </class>
+  <operation name="Elevator_Ctor" type="void" visibility="0x00" properties="0x00">
+   <code>Elevator * me = &amp;Elevator_inst;
+QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;Elevator_initial));
+QTimeEvt_ctorX(&amp;me-&gt;motionTEvt, &amp;me-&gt;super, mTIMEOUT_SIG, 0U);
+QTimeEvt_ctorX(&amp;me-&gt;stationaryTEvt, &amp;me-&gt;super, sTIMEOUT_SIG, 0U);
+me-&gt;current = 0U;</code>
+  </operation>
+  <attribute name="Elevator_inst" type="Elevator" visibility="0x02" properties="0x00"/>
+  <attribute name="AOElevator" type="QActive *" visibility="0x00" properties="0x00">
+   <code>= &amp;Elevator_inst.super;</code>
+  </attribute>
+  <class name="HostHandler" superclass="qpc::QActive">
+   <attribute name="defferQ" type="QEQueue" visibility="0x02" properties="0x00"/>
+   <attribute name="deferedQSto[10]" type="QEvt const *" visibility="0x02" properties="0x00"/>
+   <attribute name="timer" type="QTimeEvt" visibility="0x00" properties="0x00"/>
+   <statechart properties="0x00">
+    <initial target="../2">
+     <initial_glyph conn="27,4,5,0,-7,12">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="transmiting_state">
+     <entry>QTimeEvt_armX(&amp;me-&gt;timer, SEND_INTERVAL, SEND_INTERVAL);
+</entry>
+     <exit>QTimeEvt_disarm(&amp;me-&gt;timer);
+</exit>
+     <tran trig="EXIT_REQUEST">
+      <action>request(EXIT_REQUEST_SIG);</action>
+      <tran_glyph conn="63,38,1,-1,-16">
+       <action box="-18,-5,19,5"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="42,14,21,30">
+      <entry box="0,3,6,2"/>
+      <exit box="0,5,6,2"/>
+     </state_glyph>
+    </state>
+    <state name="idle">
+     <entry>// recall the oldest deferred request...
+QActive_recall(&amp;me-&gt;super, &amp;me-&gt;defferQ);
+</entry>
+     <tran trig="PRINT" target="../../1">
+      <tran_glyph conn="12,24,3,3,30">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="12,16,17,25">
+      <entry box="0,3,6,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="80,50"/>
+   </statechart>
+  </class>
+  <operation name="HostHandler_Ctor" type="void" visibility="0x00" properties="0x00">
+   <code>HostHandler * me = &amp;HostHandler_inst;
+QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;Requestor_initial));
+QEQueue_init(&amp;me-&gt;defferQ, me-&gt;deferedQSto, Q_DIM(me-&gt;deferedQSto));
+QTimeEvt_ctorX(&amp;me-&gt;timer,   &amp;me-&gt;super, hTIMEOUT_SIG,   0U);
+</code>
+  </operation>
+  <attribute name="HostHandler_inst" type="HostHandler" visibility="0x02" properties="0x00"/>
+  <attribute name="AOHostHandler" type="QActive *" visibility="0x00" properties="0x00">
+   <code>= &amp;Requestor_inst.super;</code>
+  </attribute>
+ </package>
+ <directory name=".">
+  <file name="elevator.c">
+   <text>#include &quot;elevator.h&quot;
+#include &quot;qpc.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;string.h&quot;
+#include &quot;usbd_cdc_if.h&quot;
+#include &quot;string.h&quot;
+#include &lt;stdio.h&gt;
+Q_DEFINE_THIS_FILE
+
+$define${AOs::Elevator}
+
+$define${AOs::Elevator_inst}
+
+$define${AOs::Elevator_Ctor}
+
+$define${AOs::AOElevator}
+
+//$define${AOs::Requestor}
+
+//$define${AOs::Requestor_inst}
+
+//$define${AOs::Requestor_Ctor}
+
+//$define${AOs::AORequestor}
+
+void refreshFeed(void){
+
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer),
+             &quot;%-4d %-15d %-15d %-15s %-15s 0x%08X\n&quot;,
+             Elevator_inst.iD++,
+             Elevator_inst.current,
+             Elevator_inst.next,
+             Elevator_inst.dir,
+             Elevator_inst.doorState,
+             requests);
+
+    while (CDC_Transmit_FS((uint8_t*)buffer, strlen(buffer)) != USBD_OK) {
+        HAL_Delay(4); // or use busy wait
+    }
+}
+
+
+
+$define${shared::requests}
+</text>
+  </file>
+  <file name="elevator.h">
+   <text>#ifndef elevator_h_
+#define elevator_h_
+#include &quot;qpc.h&quot;
+
+$declare${shared::MAX_LEVELS}
+
+#ifndef BSP_TICKS_PER_SEC
+#define BSP_TICKS_PER_SEC 100U // Define a constant value for BSP_TICKS_PER_SEC
+#endif
+
+void refreshFeed(void);
+
+#define MESSAGE_SIZE (uint8_t)100U
+
+
+$declare${shared}
+
+
+$declare${AOs::Elevator}
+$declare${AOs::AOElevator}
+$declare${AOs::Elevator_Ctor}
+
+$declare${AOs::HostHandler}
+$declare${AOs::HostHandler_Ctor}
+$declare${AOs::AOHostHandler}
+
+
+
+#endif</text>
+  </file>
+ </directory>
+</model>

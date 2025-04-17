@@ -1,0 +1,7 @@
+../Core/Src/qf/qf_dyn.c:47:6:QF_poolInit	2
+../Core/Src/qf/qf_dyn.c:82:15:QF_poolGetMaxBlockSize	1
+../Core/Src/qf/qf_dyn.c:94:15:QF_getPoolMin	2
+../Core/Src/qf/qf_dyn.c:110:8:QF_newX_	4
+../Core/Src/qf/qf_dyn.c:183:6:QF_gc	4
+../Core/Src/qf/qf_dyn.c:238:14:QF_newRef_	2
+../Core/Src/qf/qf_dyn.c:274:6:QF_deleteRef_	1

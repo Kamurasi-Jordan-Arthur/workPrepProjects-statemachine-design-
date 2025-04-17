@@ -36,7 +36,6 @@
 #include "bsp.h"                 // Board Support Package
 #include "elevator.h"            // Elevator specifics
 #include <stdio.h>
-#include "usb_device.h"
 
 
 #include "stm32f4xx.h"  // CMSIS-compliant header file for the MCU used
@@ -44,7 +43,7 @@
 #include "stm32f4xx_hal_usart.h" // if using USART
 #include "stm32f4xx_hal_gpio.h"  // for GPIO
 #include "stm32f4xx_hal_rcc.h"   // for RCC functions (usually included via main HAL)
-
+#include "usb_device.h"
 // add other drivers if necessary...
 
 Q_DEFINE_THIS_FILE  // define the name of this file for assertions
@@ -70,8 +69,6 @@ Q_DEFINE_THIS_FILE  // define the name of this file for assertions
 
 // USART Constants
 
-static uint32_t l_rndSeed;
-
 #ifdef Q_SPY
     static QSTimeCtr QS_tickTime_;
     static QSTimeCtr QS_tickPeriod_;
@@ -88,29 +85,20 @@ static uint32_t l_rndSeed;
 #endif
 
 //============================================================================
-// Error handler and ISRs...
 
-Q_NORETURN Q_onError(char const * const module, int_t const id) {
-    // NOTE: this implementation of the assertion handler is intended only
-    // for debugging and MUST be changed for deployment of the application
-    // (assuming that you ship your production code with assertions enabled).
-    Q_UNUSED_PAR(module);
-    Q_UNUSED_PAR(id);
-    QS_ASSERTION(module, id, 10000U);
 
-#ifndef NDEBUG
-    // for debugging, hang on in an endless loop...
-    for (;;) {
-    }
-#endif
-
-    NVIC_SystemReset();
-}
 //............................................................................
-void assert_failed(char const * const module, int_t const id); // prototype
-void assert_failed(char const * const module, int_t const id) {
-    Q_onError(module, id);
-}
+void orangeOn()  { HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN, GPIO_PIN_SET); }
+void orangeOff() { HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN, GPIO_PIN_RESET); }
+
+void greenOn()   { HAL_GPIO_WritePin(LED_GPIO_PORT, GREEN_PIN, GPIO_PIN_SET); }
+void greenOff()  { HAL_GPIO_WritePin(LED_GPIO_PORT, GREEN_PIN, GPIO_PIN_RESET); }
+
+void redOn()     { HAL_GPIO_WritePin(LED_GPIO_PORT, RED_PIN, GPIO_PIN_SET); }
+void redOff()    { HAL_GPIO_WritePin(LED_GPIO_PORT, RED_PIN, GPIO_PIN_RESET); }
+
+void blueOn()    { HAL_GPIO_WritePin(LED_GPIO_PORT, BLUE_PIN, GPIO_PIN_SET); }
+void blueOff()   { HAL_GPIO_WritePin(LED_GPIO_PORT, BLUE_PIN, GPIO_PIN_RESET); }
 
 //.........................................................................
 uint8_t already_requested(uint16_t level){
@@ -188,50 +176,15 @@ uint16_t getHighestRequest(uint16_t base){
 //..........................................................................
 
 
+
+
+
 // ISRs used in the application ==========================================
 void SysTick_Handler(void); // prototype
 void SysTick_Handler(void) {
+    HAL_IncTick();
 
     QTIMEEVT_TICK_X(0U, &l_SysTick_Handler); // time events at rate 0
-
-    // Perform the debouncing of buttons. The algorithm for debouncing
-    // adapted from the book "Embedded Systems Dictionary" by Jack Ganssle
-    // and Michael Barr, page 71.
-    //
-    // state of the button debouncing
-    // static struct {
-    //     uint32_t depressed;
-    //     uint32_t previous;
-    // } buttons = { 0U, 0U };
-
-    // uint32_t current = BTN_GPIO_PORT->IDR; // read BTN GPIO
-    // uint32_t tmp = buttons.depressed; // save the depressed buttons
-    // buttons.depressed |= (buttons.previous & current); // set depressed
-    // buttons.depressed &= (buttons.previous | current); // clear released
-    // buttons.previous   = current; // update the history
-    // tmp ^= buttons.depressed;     // changed debounced depressed
-    // current = buttons.depressed;
-
-    // if ((tmp & BTN_B1) != 0U) { // debounced B1 state changed?
-    //     if ((current & BTN_B1) != 0U) { // is B1 depressed?
-    //         static QEvt const enterEvt = QEVT_INITIALIZER(ENTER_REQUEST_SIG);
-    //         QACTIVE_POST(AORequestor, &enterEvt, (void)0 );
-    //     }
-    //     else { // the button is released
-    //         static QEvt const exitEvt = QEVT_INITIALIZER(EXIT_REQUEST_SIG);
-    //         QACTIVE_POST(AORequestor, &exitEvt, (void)0 );
-    //     }
-        // if ((current & DOWN_PIN) != 0U) { // is B1 depressed?
-        //     static QEvt const dowEvt = QEVT_INITIALIZER(DOWN_REQUEST_SIG);
-        //     QACTIVE_POST(AORequestor, &dowEvt, (void)0 );
-        // }
-        // if ((current & INTERUPT_PIN) != 0U) { // is B1 depressed?
-        //     static QEvt const intPress = QEVT_INITIALIZER(CLOSE_INTERRUPT_SIG);
-        //     QACTIVE_POST(AOElevator, &intPress, (void)0 );
-        // }
-    // }
-
-    
 
 #ifdef Q_SPY
     tmp = SysTick->CTRL; // clear CTRL_COUNTFLAG
@@ -241,33 +194,6 @@ void SysTick_Handler(void) {
     QV_ARM_ERRATUM_838869();
 }
 
-UART_HandleTypeDef huart2;
-uint8_t uart_rx_byte;
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART2) {
-        char received_data = (char)uart_rx_byte;
-
-        if (received_data >= '0' && received_data <= '9') {
-            requestEvt * RequestEve = Q_NEW(requestEvt ,REQUEST_SIG);
-            RequestEve->level = received_data - '0';
-
-            if (!already_requested(RequestEve->level)){
-                register_request(RequestEve->level);
-                QACTIVE_POST(AOElevator, (QEvtPtr)RequestEve, (void*)0U);
-            }
-        } else if (received_data == 'I' || received_data == 'i') {
-            static QEvt const intPress = QEVT_INITIALIZER(CLOSE_INTERRUPT_SIG);
-            QACTIVE_POST(AOElevator, &intPress, (void*)0);
-        } else if (received_data == 'C' || received_data == 'c') {
-            requests = 0U;
-        } else if (received_data != '\n' && received_data != '\r') {
-            printf("Invalid input: %c\n", received_data);
-        }
-
-        HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
-    }
-}
 
 //............................................................................
 #ifdef Q_SPY
@@ -301,108 +227,10 @@ void QF_onContextSw(QActive *prev, QActive *next) {
 
 //============================================================================
 // BSP functions...
-void UART_Init(void); // prototype
-void UART_Init(void) {
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_USART2_CLK_ENABLE();
+//............................................................................
 
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = 115200;
-    huart2.Init.WordLength = UART_WORDLENGTH_8B;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    HAL_UART_Init(&huart2);
-
-    // HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
-    // HAL_NVIC_EnableIRQ(USART2_IRQn);
-    HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
-}
-
-
-static void MX_GPIO_Init(void);
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : PC0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
-}
-
-
-void SystemClock_Config(void);
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
+//............................................................................
 void BSP_init(void) {
-    
     Q_ASSERT(MAX_LEVELS <= 16U);
 
     // Configure the MPU to prevent NULL-pointer dereferencing ...
@@ -421,16 +249,14 @@ void BSP_init(void) {
     // but SystemCoreClock needs to be updated
     HAL_Init();
 
-    //configure the system clock
-    SystemClock_Config();
+    /* Configure the system clock */
+    SystemClock_Config(); 
+    //configure the system clock update
+    // SystemCoreClockUpdate();
 
-    SystemCoreClockUpdate();
-
-  /* Initialize all configured peripherals */
+    /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_USB_DEVICE_Init();
-    
-    // NOTE The VFP (Floating Point Unit) unit is configured by QK-port
 
     // Initialize thr port for the LEDs
     __HAL_RCC_GPIOD_CLK_ENABLE();
@@ -444,14 +270,6 @@ void BSP_init(void) {
 
     HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN | GREEN_PIN | RED_PIN | BLUE_PIN, GPIO_PIN_RESET);
 
-    // __HAL_RCC_GPIOA_CLK_ENABLE();
-    // GPIO_InitStruct.Pin = BTN_B1;
-    // GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    // GPIO_InitStruct.Pull = GPIO_NOPULL;
-    // HAL_GPIO_Init(BTN_GPIO_PORT, &GPIO_InitStruct);
-
-    // UART_Init();
-    // BSP_randomSeed(1234U); // seed the random number generator
 
     // initialize the QS software tracing...
     if (!QS_INIT((void *)0)) {
@@ -471,33 +289,94 @@ void BSP_init(void) {
     QS_GLB_FILTER(-QS_QF_TICK);      // exclude the clock tick
 }
 
-
+    /**
+     * @brief System Clock Configuration
+     * @retval None
+     */
+    void SystemClock_Config(void)
+    {
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+    
+    /** Configure the main internal regulator output voltage
+     */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    
+    /** Initializes the RCC Oscillators according to the specified parameters
+     * in the RCC_OscInitTypeDef structure.
+     */
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 8;
+    RCC_OscInitStruct.PLL.PLLN = 336;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 7;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    
+    /** Initializes the CPU, AHB and APB buses clocks
+     */
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+    
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    }
+    
+    /**
+     * @brief GPIO Initialization Function
+     * @param None
+     * @retval None
+     */
+    void MX_GPIO_Init(void)
+    {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    /* USER CODE BEGIN MX_GPIO_Init_1 */
+    
+    /* USER CODE END MX_GPIO_Init_1 */
+    
+    /* GPIO Ports Clock Enable */
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    
+    /*Configure GPIO pin Output Level */
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_RESET);
+    
+    /*Configure GPIO pin : PC0 */
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    
+    /* USER CODE BEGIN MX_GPIO_Init_2 */
+    
+    /* USER CODE END MX_GPIO_Init_2 */
+    }
+  
 
 //............................................................................
 void BSP_start(void) {
     // initialize event pools
+    // HAL_ResumeTick(); // resume the SysTick interrupt
     static QF_MPOOL_EL(requestEvt) smlPoolSto[MAX_LEVELS];
     QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));
 
     // static QF_MPOOL_EL(printDataEvt) mediumlPoolSto[MAX_LEVELS];
     // QF_poolInit(mediumlPoolSto, sizeof(mediumlPoolSto), sizeof(mediumlPoolSto[0]));
-    // initialize publish-subscribe
-    // static QSubscrList subscrSto[MAX_PUB_SIG];   // not used in my application
-    // QActive_psInit(subscrSto, Q_DIM(subscrSto));
-
-    // instantiate and start AOs/threads...
-
-    // static QEvtPtr RequestorQueueSto[4];
-    // Requestor_Ctor();
-    // QActive_start(AORequestor,
-    //     3U,                // QP prio. of the Requestor I dont know why we skip the first 2
-    //     RequestorQueueSto,               // event queue storage
-    //     Q_DIM(RequestorQueueSto),        // queue length [events]
-    //     (void *)0, 0U,               // no stack storage
-    //     (void *)0);                  // no initialization param
-
-
-    static QEvtPtr elevatorQueueSto[MAX_LEVELS];
+        static QEvtPtr elevatorQueueSto[MAX_LEVELS];
     Elevator_Ctor();
     QActive_start(AOElevator,
         4U,                // QP prio. of the Elevator I dont know why we skip the first 2
@@ -506,48 +385,43 @@ void BSP_start(void) {
         (void *)0, 0U,               // no stack storage
         (void *)0);                  // no initialization param
 }
-//............................................................................
-void orangeOn()  { HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN, GPIO_PIN_SET); }
-void orangeOff() { HAL_GPIO_WritePin(LED_GPIO_PORT, ORANGE_PIN, GPIO_PIN_RESET); }
 
-void greenOn()   { HAL_GPIO_WritePin(LED_GPIO_PORT, GREEN_PIN, GPIO_PIN_SET); }
-void greenOff()  { HAL_GPIO_WritePin(LED_GPIO_PORT, GREEN_PIN, GPIO_PIN_RESET); }
+// Error handler and ISRs...
 
-void redOn()     { HAL_GPIO_WritePin(LED_GPIO_PORT, RED_PIN, GPIO_PIN_SET); }
-void redOff()    { HAL_GPIO_WritePin(LED_GPIO_PORT, RED_PIN, GPIO_PIN_RESET); }
+Q_NORETURN Q_onError(char const * const module, int_t const id) {
+    // NOTE: this implementation of the assertion handler is intended only
+    // for debugging and MUST be changed for deployment of the application
+    // (assuming that you ship your production code with assertions enabled).
+    Q_UNUSED_PAR(module);
+    Q_UNUSED_PAR(id);
+    QS_ASSERTION(module, id, 10000U);
 
-void blueOn()    { HAL_GPIO_WritePin(LED_GPIO_PORT, BLUE_PIN, GPIO_PIN_SET); }
-void blueOff()   { HAL_GPIO_WritePin(LED_GPIO_PORT, BLUE_PIN, GPIO_PIN_RESET); }
+#ifndef NDEBUG
+    // for debugging, hang on in an endless loop...
+    for (;;) {
+    }
+#endif
 
-
-void BSP_randomSeed(uint32_t seed) {
-    l_rndSeed = seed;
-}
-
-void Error_Handler(void){
-    Q_ERROR();
+    NVIC_SystemReset();
 }
 //............................................................................
-uint32_t BSP_random(void) { // a very cheap pseudo-random-number generator
-
-    // Some flating point code is to exercise the FPU...
-    float volatile x = 3.1415926F;
-    x = x + 2.7182818F;
-
-    // "Super-Duper" Linear Congruential Generator (LCG)
-    // LCG(2^32, 3*7*11*13*23, 0, seed)
-    //
-    uint32_t rnd = l_rndSeed * (3U*7U*11U*13U*23U);
-    l_rndSeed = rnd; // set for the next time
-
-    return (rnd >> 8U);
-
-
+void assert_failed(char const * const module, int_t const id); // prototype
+void assert_failed(char const * const module, int_t const id) {
+    Q_onError(module, id);
 }
-//............................................................................
+
+//.............................................................................
+void Error_Handler(void) {
+    // NOTE: this implementation of the error handler is intended only
+    // for debugging and MUST be changed for deployment of the application
+    // (assuming that you ship your production code with assertions enabled).
+    Q_onError("Error_Handler", 10000);
+}
+//.............................................................................
 // QF callbacks...
 void QF_onStartup(void) {
     // set up the SysTick timer to fire at BSP_TICKS_PER_SEC rate
+    __enable_irq(); 
     SystemCoreClockUpdate();
     SysTick_Config(SystemCoreClock / BSP_TICKS_PER_SEC);
 
@@ -556,10 +430,13 @@ void QF_onStartup(void) {
 
     // set priorities of ALL ISRs used in the system, see NOTE1
     // HAL_NVIC_SetPriority(USART2_IRQn, QF_AWARE_ISR_CMSIS_PRI+1U , 0); 
+
+    HAL_NVIC_SetPriority(OTG_FS_IRQn, QF_AWARE_ISR_CMSIS_PRI + 1U, 0);
+    HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
     HAL_NVIC_SetPriority(SysTick_IRQn,   QF_AWARE_ISR_CMSIS_PRI + 2U, 0);
-    // ...........................................................
     HAL_NVIC_EnableIRQ(SysTick_IRQn);
-    // HAL_NVIC_EnableIRQ(USART2_IRQn); // USART2 interrupt used for RX over Usart2
+
+    // ...........................................................
 
     // enable IRQs...
 #ifdef Q_SPY

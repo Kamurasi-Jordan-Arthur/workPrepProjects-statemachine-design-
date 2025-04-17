@@ -1,0 +1,6 @@
+../Core/Src/qv/qv.c:53:6:QV_schedDisable	8	static
+../Core/Src/qv/qv.c:73:6:QV_schedEnable	8	static
+../Core/Src/qv/qv.c:92:6:QF_init	8	static
+../Core/Src/qv/qv.c:106:6:QF_stop	0	static
+../Core/Src/qv/qv.c:113:7:QF_run	32	static,ignoring_inline_asm
+../Core/Src/qv/qv.c:214:6:QActive_start	32	static

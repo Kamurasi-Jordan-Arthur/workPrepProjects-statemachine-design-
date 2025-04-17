@@ -1,0 +1,19 @@
+hey I what to make a simlpe presenatation  about the activities I followed towards creation of serial communication over stm32f407 disc 1 by Connect the STM32F4DISCOVERY board to a PC with a USB cable ‘Type-A to Mini-B’
+through USB through the Usb vartial com port of the board but I had first used platformio via vscode in vain setting up at connection through the available ST-Link debug port making this USART2 configuration programing on the board  "The ST-LINK/V2-A supports a Virtual COM port (VCP) on U2 pin 12 (ST-LINK_TX) and U2 pin 13 (ST-LINK_RX) however after a number of trouble shooting I found out that these these pins are not bridged / connected to the USART of the STM32F407 microcontroller."
+
+There were two available solutions :
+Using an USART to USB dongle from the market connected for instance to
+STM32F407 USART2 available on connector P1 pin 14 (PA2: USART2_TX) and P1
+pin 13 (PA3: USART2_RX).
+•Using flying wires to connect ST-LINK/V2-A Virtual COM port (ST-LINK VCP on U2 pin
+12 and 13.
+
+Non of which were favourable 
+
+Luckly enough the board houses USB with Micro-AB on it. And I also happened to such a cable.
+So I programmed the board to use that connection "simple describe the techinical steps to have that work under platfom io in vscode by copying and pasting the usb CDC ".c" files from an already generated project via the configurator tool in STM IDE and includeing them in my project".
+
+but for some reason the port was not rendering on connection to my PC" 
+I the long run I had to migrate the project and congifure the project in STM IDE. Luckly enoug it shouwed up.
+
+

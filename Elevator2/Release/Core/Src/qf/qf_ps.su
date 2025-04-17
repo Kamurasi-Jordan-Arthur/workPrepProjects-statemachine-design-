@@ -1,0 +1,5 @@
+../Core/Src/qf/qf_ps.c:48:6:QActive_psInit	0	static
+../Core/Src/qf/qf_ps.c:63:6:QActive_publish_	32	static
+../Core/Src/qf/qf_ps.c:156:6:QActive_subscribe	16	static
+../Core/Src/qf/qf_ps.c:183:6:QActive_unsubscribe	16	static
+../Core/Src/qf/qf_ps.c:210:6:QActive_unsubscribeAll	24	static,ignoring_inline_asm

@@ -1,0 +1,4 @@
+../Core/Src/appfiles/src/stdfunctions.c:37:6:busy_wait_us	8	static,ignoring_inline_asm
+../Core/Src/appfiles/src/stdfunctions.c:17:5:_write	24	static
+../Core/Src/appfiles/src/stdfunctions.c:44:6:busy_wait_ms	8	static
+../Core/Src/appfiles/src/stdfunctions.c:48:6:HAL_Delay	0	static
